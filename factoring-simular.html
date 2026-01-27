@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TACTIQA | Simular Factoring</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="bg"></div>
+
+  <main class="view active">
+    <section class="card form-card">
+
+      <div class="brand-row">
+        <img src="logo.jpg" class="brand-logo-mini" alt="TACTIQA" />
+        <div class="brand-mini-texts">
+          <div class="brand-mini-text">TACTIQA</div>
+          <div class="brand-mini-sub">Simulación (solo cálculo)</div>
+        </div>
+      </div>
+
+      <div class="titlebar">
+        <h2>Simulación de Factoring</h2>
+      </div>
+
+      <div class="note">Una operación puede contener múltiples facturas.</div>
+
+      <div class="grid two pad">
+        <div class="col">
+          <label>Días factoring</label>
+          <input id="dias" type="number" min="0" step="1" />
+
+          <label>Retención fuente</label>
+          <input id="retFte" inputmode="decimal" />
+        </div>
+
+        <div class="col">
+          <label>Subtotal</label>
+          <input id="subtotal" inputmode="decimal" />
+
+          <label>Retención IVA</label>
+          <input id="retIva" inputmode="decimal" />
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="fin-table" id="tablaFacturas">
+
+          <colgroup>
+            <col style="width: 190px;"> <!-- Días / TOTAL OPERACIÓN -->
+            <col style="width: 170px;"> <!-- Total -->
+            <col style="width: 200px;"> <!-- Valor Anticipado -->
+            <col style="width: 170px;"> <!-- Descuento -->
+            <col style="width: 200px;"> <!-- Valor a Depositar -->
+            <col style="width: 56px;">  <!-- Acción -->
+          </colgroup>
+
+          <thead>
+            <tr>
+              <th>Días</th>
+              <th>Total</th>
+              <th>Valor Anticipado</th>
+              <th>Descuento</th>
+              <th>Valor a Depositar</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody></tbody>
+
+          <tfoot>
+            <tr class="row-grand">
+              <td>TOTAL OPERACIÓN</td>
+              <td id="t_total">0.00</td>
+              <td id="t_anticipado">0.00</td>
+              <td id="t_dscto">0.00</td>
+              <td id="t_depositar">0.00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" type="button" id="btnAddFactura">Calcular simulación</button>
+        <a class="btn ghost" href="menu.html">Volver</a>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="factoring-simular.js"></script>
+</body>
+</html>

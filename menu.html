@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TACTIQA | Menú principal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="bg"></div>
+
+  <main class="view active">
+    <section class="card form-card">
+
+      <div class="brand-row">
+        <img src="logo.jpg" class="brand-logo-mini" alt="TACTIQA" />
+        <div class="brand-mini-texts">
+          <div class="brand-mini-text">TACTIQA</div>
+          <div class="brand-mini-sub">Panel principal</div>
+        </div>
+      </div>
+
+      <div class="titlebar">
+        <h2>¿Qué deseas hacer?</h2>
+      </div>
+
+      <div class="note">Selecciona una opción para continuar.</div>
+
+      <div class="docs-grid">
+
+        <div class="doc-box" role="button" tabindex="0" data-go="nuevo-cliente.html">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Crear nuevo cliente</div>
+              <div class="doc-sub">Registrar persona natural o jurídica</div>
+            </div>
+            <div class="pill">👤</div>
+          </div>
+          <button class="btn primary full" type="button">Ingresar</button>
+        </div>
+
+        <div class="doc-box" role="button" tabindex="0" data-go="clientes.html">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Clientes</div>
+              <div class="doc-sub">Gestión y listado de clientes</div>
+            </div>
+            <div class="pill">👥</div>
+          </div>
+          <button class="btn primary full" type="button">Abrir</button>
+        </div>
+
+        <!-- <div class="doc-box" role="button" tabindex="0" data-go="factoring-simular.html">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Simular operación de factoring</div>
+              <div class="doc-sub">Solo cálculos. No se envía ni se guarda nada</div>
+            </div>
+            <div class="pill">🧮</div>
+          </div>
+          <button class="btn primary full" type="button">Simular</button>
+        </div> -->
+
+        <!-- <div class="doc-box" role="button" tabindex="0" data-go="factoring.html">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Crear operación de factoring</div>
+              <div class="doc-sub">Operación real (según tu flujo de envío/guardado)</div>
+            </div>
+            <div class="pill">📤</div>
+          </div>
+          <button class="btn primary full" type="button">Crear</button>
+        </div> -->
+
+        <div class="doc-box" role="button" tabindex="0" data-go="cartera.html">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Cartera de clientes</div>
+              <div class="doc-sub">Visualizar operaciones y cartera</div>
+            </div>
+            <div class="pill">📁</div>
+          </div>
+          <button class="btn primary full" type="button">Abrir</button>
+        </div>
+
+      </div>
+
+      <div class="actions">
+        <a class="btn ghost" href="index.html">Cerrar sesión</a>
+        <span></span>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="menu.js"></script>
+</body>
+</html>

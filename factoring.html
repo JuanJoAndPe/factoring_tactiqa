@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TACTIQA | Factoring</title>
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+<div class="bg"></div>
+
+<main class="view active">
+<section class="card form-card">
+
+  <div class="brand-row">
+    <img src="logo.jpg" class="brand-logo-mini" />
+    <div>
+      <div class="brand-mini-text">TACTIQA</div>
+      <div class="brand-mini-sub">Operación de Factoring</div>
+    </div>
+  </div>
+
+  <div class="titlebar">
+    <h2>Simulación de Factoring</h2>
+  </div>
+
+  <!-- ===== DATOS GENERALES ===== -->
+  <div class="note">Una operación puede contener múltiples facturas.</div>
+
+  <div class="grid two pad">
+    <div class="col">
+      <label>Empresa</label>
+      <input id="empresa" />
+    </div>
+
+    <div class="col">
+      <label>Fecha de desembolso</label>
+      <input id="fechaDesembolso" type="date" />
+    </div>
+  </div>
+
+  <!-- ===== FACTURA ===== -->
+  <h3 class="section-title pad">Factura</h3>
+
+  <div class="grid two pad">
+    <div class="col">
+      <label># Factura</label>
+      <input id="factura" />
+      <label>Fecha factura</label>
+      <input id="fechaFactura" type="date" />
+      <label>Días factoring</label>
+      <input id="dias" type="number" />
+    </div>
+
+    <div class="col">
+      <label>Subtotal</label>
+      <input id="subtotal" />
+      <label>Retención fuente</label>
+      <input id="retFte" />
+      <label>Retención IVA</label>
+      <input id="retIva" />
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn ghost" type="button" id="btnAddFactura">Agregar factura</button>
+    <div class="actions">
+      <a class="btn ghost" href="menu.html">Volver</a>
+    </div>
+  </div>
+
+  <!-- ===== TABLA FACTURAS ===== -->
+  <div class="table-wrap">
+    <table class="fin-table" id="tablaFacturas">
+      <thead>
+        <tr>
+          <th>Factura</th>
+          <th>Fecha</th>
+          <th>Días</th>
+          <th>Total</th>
+          <th>Valor Anticipado</th>
+          <th>Descuento</th>
+          <th>Valor a Depositar</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr class="row-grand">
+          <td colspan="3">TOTAL OPERACIÓN</td>
+          <td id="t_total">0.00</td>
+          <td id="t_anticipado">0.00</td>
+          <td id="t_dscto">0.00</td>
+          <td id="t_depositar">0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- ===== DOCUMENTOS ===== -->
+  <h3 class="section-title pad">Documentos</h3>
+
+  <div class="docs-grid">
+    <div class="doc-box">
+      <label>Facturas</label>
+      <input type="file" id="fileFacturas" multiple />
+    </div>
+
+    <div class="doc-box">
+      <label>Retenciones</label>
+      <input type="file" id="fileRetenciones" multiple />
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" type="button" id="btnEnviar">Enviar operación</button>
+  </div>
+
+</section>
+</main>
+
+<script src="factoring.js"></script>
+</body>
+</html>

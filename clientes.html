@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TACTIQA | Clientes</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="bg"></div>
+
+  <main class="view active">
+    <section class="card form-card">
+
+      <div class="brand-row">
+        <img src="logo.jpg" class="brand-logo-mini" alt="TACTIQA" />
+        <div class="brand-mini-texts">
+          <div class="brand-mini-text">TACTIQA</div>
+          <div class="brand-mini-sub">Clientes</div>
+        </div>
+      </div>
+
+      <div class="titlebar">
+        <h2>Clientes</h2>
+      </div>
+
+      <div class="note">
+        Busca y gestiona clientes registrados.
+      </div>
+
+      <!-- Barra de búsqueda -->
+      <div class="clients-toolbar">
+        <div class="field">
+          <label for="q">Buscar</label>
+          <input id="q" type="text" placeholder="Nombre, identificación, email, teléfono..." />
+        </div>
+
+        <div class="clients-actions">
+          <button class="btn primary" type="button" id="btnBuscar">Buscar</button>
+          <button class="btn ghost" type="button" id="btnLimpiar">Limpiar</button>
+          <a class="btn ghost" href="menu.html">Volver</a>
+        </div>
+      </div>
+
+      <div class="clients-meta" id="meta"></div>
+
+      <div class="table-wrap">
+        <table class="fin-table" id="tblClientes">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Tipo</th>
+              <th>Cliente</th>
+              <th>Identificación</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="clients-empty" id="empty" style="display:none;"></div>
+      </div>
+
+      <div class="actions">
+        <a class="btn ghost" href="nuevo-cliente.html">+ Crear nuevo cliente</a>
+        <span></span>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="clientes.js"></script>
+</body>
+</html>

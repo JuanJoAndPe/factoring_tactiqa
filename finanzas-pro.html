@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TACTIQA | Información Financiera</title>
+  <link rel="stylesheet" href="styles.css">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    // Configurar worker inmediatamente
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+</head>
+
+<body>
+<div class="bg"></div>
+
+<main class="view active">
+  <section class="card form-card">
+
+    <div class="brand-row">
+      <img src="logo.jpg" alt="TACTIQA" onerror="this.style.display='none'"> 
+      <div>
+        <div class="brand-title">TACTIQA</div>
+        <div class="brand-sub">Información Financiera de la Empresa</div>
+      </div>
+    </div>
+
+    <div class="titlebar">
+      <h2>Información Financiera</h2>
+    </div>
+
+    <div class="note">
+      <b>Instrucciones:</b> Cargue los PDFs de la SUPERCIAS en la primera pestaña. El sistema detectará los códigos (ej: 101, 401) y llenará los valores automáticamente.
+    </div>
+
+    <div class="years">
+      <input type="number" id="year1" placeholder="Año 1 (ej. 2024)">
+      <input type="number" id="year2" placeholder="Año 2 (ej. 2023)">
+      <input type="number" id="year3" placeholder="Año 3 (ej. 2022)">
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="docs">Carga de Documentos</button>
+      <button class="tab" data-tab="bg">Balance General</button>
+      <button class="tab" data-tab="er">Estado de Resultados</button>
+    </div>
+
+    <section class="tabpanel active" data-panel="docs">
+      <h3 class="section-title">Carga de Documentos</h3>
+      
+      <form id="docsForm" class="docs-grid">
+        
+        <div class="doc-group">
+          <h4>Balances Generales SUPERCIAS (PDF)</h4>
+          <p class="small-note">Suba el archivo "Estado de Situación Financiera"</p>
+          <div class="doc-box">
+            <label>Balance Año 1 <span class="req">*</span> <span id="status-bg-0" class="status-text"></span></label>
+            <input type="file" accept=".pdf" class="pdf-autofill" data-type="bg" data-col="0" required>
+          </div>
+          <div class="doc-box">
+            <label>Balance Año 2 <span class="req">*</span> <span id="status-bg-1" class="status-text"></span></label>
+            <input type="file" accept=".pdf" class="pdf-autofill" data-type="bg" data-col="1" required>
+          </div>
+          <div class="doc-box">
+            <label>Balance Año 3 <span class="req">*</span> <span id="status-bg-2" class="status-text"></span></label>
+            <input type="file" accept=".pdf" class="pdf-autofill" data-type="bg" data-col="2" required>
+          </div>
+        </div>
+
+        <div class="doc-group">
+          <h4>Estados de Resultados SUPERCIAS (PDF)</h4>
+          <p class="small-note">Suba el archivo "Estado de Resultado Integral"</p>
+          <div class="doc-box">
+            <label>Est. Resultados Año 1 <span class="req">*</span> <span id="status-er-0" class="status-text"></span></label>
+            <input type="file" accept=".pdf" class="pdf-autofill" data-type="er" data-col="0" required>
+          </div>
+          <div class="doc-box">
+            <label>Est. Resultados Año 2 <span class="req">*</span> <span id="status-er-1" class="status-text"></span></label>
+            <input type="file" accept=".pdf" class="pdf-autofill" data-type="er" data-col="1" required>
+          </div>
+          <div class="doc-box">
+            <label>Est. Resultados Año 3 <span class="req">*</span> <span id="status-er-2" class="status-text"></span></label>
+            <input type="file" accept=".pdf" class="pdf-autofill" data-type="er" data-col="2" required>
+          </div>
+        </div>
+
+        <div class="doc-group">
+            <h4>Legales y Tributarios</h4>
+            <div class="doc-box"><label>Certificado RUC <span class="req">*</span></label><input type="file" required></div>
+            <div class="doc-box"><label>Copia Cédula Rep. Legal <span class="req">*</span></label><input type="file" required></div>
+            <div class="doc-box"><label>Nombramiento Vigente <span class="req">*</span></label><input type="file" required></div>
+            <div class="doc-box"><label>Balance Interno (Mes anterior) <span class="req">*</span></label><input type="file" required></div>
+            <div class="doc-box"><label>Declaraciones IVA (6 meses) <span class="req">*</span></label><input type="file" multiple required></div>
+        </div>
+        
+        <div class="doc-group">
+            <h4>Operativo (Opcional)</h4>
+            <div class="doc-box"><label>Facturas a negociar</label><input type="file" multiple></div>
+            <div class="doc-box"><label>Est. Cuenta Pagador</label><input type="file"></div>
+        </div>
+
+      </form>
+    </section>
+
+    <section class="tabpanel" data-panel="bg">
+      <h3 class="section-title">Balance General</h3>
+      <div class="table-wrap">
+        <table class="fin-table" id="table-bg">
+          <thead>
+            <tr>
+              <th>Cuenta</th>
+              <th>Año 1</th>
+              <th>Año 2</th>
+              <th>Año 3</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-key="ACTIVO CORRIENTE"><td>Activo Corriente</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr data-key="ACTIVO NO CORRIENTE"><td>Activo No Corriente</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr data-key="INVENTARIOS"><td>Inventarios</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr class="row-total" data-key="ACTIVO"><td>Total Activo</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+
+            <tr data-key="PASIVO CORRIENTE"><td>Pasivo Corriente</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr data-key="PASIVO NO CORRIENTE"><td>Pasivo No Corriente</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr class="row-total" data-key="PASIVO"><td>Total Pasivo</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+
+            <tr data-key="PATRIMONIO NETO"><td>Patrimonio Neto</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr data-key="RESULTADOS DEL EJERCICIO"><td>Resultados del Ejercicio</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="tabpanel" data-panel="er">
+      <h3 class="section-title">Estado de Resultados</h3>
+      <div class="table-wrap">
+        <table class="fin-table" id="table-er">
+          <thead>
+            <tr>
+              <th>Cuenta</th>
+              <th>Año 1</th>
+              <th>Año 2</th>
+              <th>Año 3</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-key="INGRESOS DE ACTIVIDADES ORDINARIAS"><td>Ingresos Act. Ordinarias</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr data-key="COSTO DE VENTAS Y PRODUCCIÓN"><td>Costo Ventas/Prod.</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr class="row-total" data-key="GANANCIA BRUTA"><td>Ganancia Bruta</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr data-key="OTROS INGRESOS"><td>Otros Ingresos</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            
+            <tr class="row-grand" data-key="GANANCIA ANTES DE IMPUESTOS"><td>Ganancia Antes Imp.</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr data-key="IMPUESTO A LA RENTA CAUSADO"><td>Impuesto a la Renta</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr class="row-grand" data-key="GANANCIA NETA DEL PERIODO"><td>Ganancia Neta</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn ghost" type="button" onclick="window.location.reload()">Cancelar</button>
+      <button class="btn primary" type="button" id="btnSave">Guardar Información</button>
+    </div>
+
+  </section>
+</main>
+
+<script src="finanzas-pro.js"></script>
+
+<style>
+    /* Estilos adicionales para feedback */
+    .status-text { font-size: 0.8rem; font-weight: bold; margin-left: 10px; }
+    .status-loading { color: #f39c12; }
+    .status-success { color: #27ae60; }
+    .status-error { color: #c0392b; }
+    .small-note { font-size: 0.8rem; color: #666; margin-bottom: 8px; margin-top: -10px; }
+    
+    input.autofilled {
+        background-color: #e8f0fe !important;
+        border: 2px solid #27ae60 !important;
+        font-weight: bold;
+    }
+</style>
+</body>
+</html>
