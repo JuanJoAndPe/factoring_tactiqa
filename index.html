@@ -10,15 +10,14 @@
 <body>
   <div class="bg"></div>
 
-  <!-- ====== LOGIN ====== -->
   <main id="view-login" class="view active">
     <section class="card login-card">
       <div class="brand">
-        <img class="brand-logo" src="logo.jpg" alt="TACTIQA" />
+        <img class="brand-logo" src="logo.jpg" alt="TACTIQA" onerror="this.style.display='none'"/>
         <div class="brand-sub"><span class="lock"></span> Iniciar sesión</div>
       </div>
 
-      <div class="form">
+      <form class="form" id="loginForm">
         <div class="field">
           <input id="loginUser" type="text" placeholder="Usuario" autocomplete="username" />
         </div>
@@ -26,46 +25,53 @@
           <input id="loginPass" type="password" placeholder="Clave" autocomplete="current-password" />
         </div>
 
-        <button class="btn primary full" type="button" id="btnIngresar">
+        <button class="btn primary full" type="submit">
           <span class="icon">⮕</span> Ingresar
         </button>
 
         <div class="links-row single">
-          <a href="#" id="goNuevoCliente">➕ Crear nuevo cliente</a>
-          <a href="#" id="goRecover">¿Olvidaste tu contraseña?</a>
+          <a href="nuevo-cliente.html">➕ Crear nuevo cliente</a>
+          <a href="#">¿Olvidaste tu contraseña?</a>
         </div>
 
-        <div class="note" id="loginMsg" style="display:none;"></div>
-      </div>
+        <div class="note" id="loginMsg" style="display:none; color:red; margin-top:10px;"></div>
+      </form>
     </section>
   </main>
 
-  <!-- ====== RECUPERAR CONTRASEÑA ====== -->
-  <main id="view-recover" class="view">
-    <section class="card login-card">
-      <div class="brand">
-        <img class="brand-logo" src="logo.jpg" alt="TACTIQA" />
-        <div class="brand-sub">✉️ Recuperar contraseña</div>
-      </div>
+  <script src="auth.js"></script>
+  
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+        e.preventDefault(); // Evita que la página se recargue
 
-      <div class="form">
-        <div class="field">
-          <input id="recoverEmail" type="email" placeholder="Correo" autocomplete="email" />
-        </div>
+        const u = document.getElementById('loginUser').value.trim();
+        const p = document.getElementById('loginPass').value.trim();
+        const msg = document.getElementById('loginMsg');
+        
+        msg.style.display = 'none';
 
-        <button class="btn success full" type="button" id="btnEnviarRecover">
-          <span class="icon">➤</span> Enviar correo de recuperación
-        </button>
+        if(!u || !p) {
+            msg.textContent = "Ingrese usuario y contraseña.";
+            msg.style.display = 'block';
+            return;
+        }
 
-        <div class="links-row single">
-          <a href="#" id="backToLogin">Volver al login</a>
-        </div>
+        // Verifica si auth.js cargó correctamente
+        if (typeof loginUser !== 'function') {
+            alert("Error: El archivo auth.js no se ha cargado. Verifica que el archivo exista en la carpeta.");
+            return;
+        }
 
-        <div class="note" id="recoverMsg" style="display:none;"></div>
-      </div>
-    </section>
-  </main>
+        const result = loginUser(u, p);
 
-  <script src="main.js"></script>
+        if (result.success) {
+            window.location.href = "menu.html";
+        } else {
+            msg.textContent = result.message;
+            msg.style.display = 'block';
+        }
+    });
+  </script>
 </body>
 </html>

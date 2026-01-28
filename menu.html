@@ -14,10 +14,10 @@
     <section class="card form-card">
 
       <div class="brand-row">
-        <img src="logo.jpg" class="brand-logo-mini" alt="TACTIQA" />
+        <img src="logo.jpg" class="brand-logo-mini" alt="TACTIQA" onerror="this.style.display='none'"/>
         <div class="brand-mini-texts">
           <div class="brand-mini-text">TACTIQA</div>
-          <div class="brand-mini-sub">Panel principal</div>
+          <div class="brand-mini-sub" id="userNameDisplay">Panel principal</div>
         </div>
       </div>
 
@@ -25,75 +25,96 @@
         <h2>¿Qué deseas hacer?</h2>
       </div>
 
-      <div class="note">Selecciona una opción para continuar.</div>
-
       <div class="docs-grid">
 
-        <div class="doc-box" role="button" tabindex="0" data-go="nuevo-cliente.html">
+        <div class="doc-box" role="button" tabindex="0" data-go="cliente-dashboard.html" 
+             data-roles="CLIENTE">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Mi Dashboard</div>
+              <div class="doc-sub">Resumen de mis operaciones</div>
+            </div>
+            <div class="pill">🏠</div>
+          </div>
+          <button class="btn success full" type="button">Ver Estado</button>
+        </div>
+
+        <div class="doc-box" role="button" tabindex="0" data-go="nuevo-cliente.html" 
+             data-roles="COMERCIAL,ADMIN">
           <div class="doc-head">
             <div>
               <div class="doc-title">Crear nuevo cliente</div>
-              <div class="doc-sub">Registrar persona natural o jurídica</div>
+              <div class="doc-sub">Registrar prospecto o cliente</div>
             </div>
             <div class="pill">👤</div>
           </div>
           <button class="btn primary full" type="button">Ingresar</button>
         </div>
 
-        <div class="doc-box" role="button" tabindex="0" data-go="clientes.html">
+        <div class="doc-box" role="button" tabindex="0" data-go="clientes.html"
+             data-roles="COMERCIAL,OPERATIVO,APROBADOR,ADMIN">
           <div class="doc-head">
             <div>
               <div class="doc-title">Clientes</div>
-              <div class="doc-sub">Gestión y listado de clientes</div>
+              <div class="doc-sub">Directorio y gestión</div>
             </div>
             <div class="pill">👥</div>
           </div>
           <button class="btn primary full" type="button">Abrir</button>
         </div>
 
-        <!-- <div class="doc-box" role="button" tabindex="0" data-go="factoring-simular.html">
+        <div class="doc-box" role="button" tabindex="0" data-go="cartera.html"
+             data-roles="CLIENTE,COMERCIAL,OPERATIVO,APROBADOR,ADMIN">
           <div class="doc-head">
             <div>
-              <div class="doc-title">Simular operación de factoring</div>
-              <div class="doc-sub">Solo cálculos. No se envía ni se guarda nada</div>
-            </div>
-            <div class="pill">🧮</div>
-          </div>
-          <button class="btn primary full" type="button">Simular</button>
-        </div> -->
-
-        <!-- <div class="doc-box" role="button" tabindex="0" data-go="factoring.html">
-          <div class="doc-head">
-            <div>
-              <div class="doc-title">Crear operación de factoring</div>
-              <div class="doc-sub">Operación real (según tu flujo de envío/guardado)</div>
-            </div>
-            <div class="pill">📤</div>
-          </div>
-          <button class="btn primary full" type="button">Crear</button>
-        </div> -->
-
-        <div class="doc-box" role="button" tabindex="0" data-go="cartera.html">
-          <div class="doc-head">
-            <div>
-              <div class="doc-title">Cartera de clientes</div>
-              <div class="doc-sub">Visualizar operaciones y cartera</div>
+              <div class="doc-title">Cartera</div>
+              <div class="doc-sub">Operaciones y Factoring</div>
             </div>
             <div class="pill">📁</div>
           </div>
           <button class="btn primary full" type="button">Abrir</button>
         </div>
 
+        <div class="doc-box" role="button" tabindex="0" data-go="finanzas-pro.html"
+             data-roles="OPERATIVO,ADMIN">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Análisis Financiero</div>
+              <div class="doc-sub">Carga de balances y ratios</div>
+            </div>
+            <div class="pill">📊</div>
+          </div>
+          <button class="btn ghost full" type="button">Herramienta</button>
+        </div>
+
+        <div class="doc-box" role="button" tabindex="0" data-go="informe_riesgo.html"
+             data-roles="OPERATIVO,APROBADOR,ADMIN">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Informe de Riesgo</div>
+              <div class="doc-sub">Revisión y Aprobación</div>
+            </div>
+            <div class="pill">⚖️</div>
+          </div>
+          <button class="btn ghost full" type="button">Gestionar</button>
+        </div>
+
       </div>
 
       <div class="actions">
-        <a class="btn ghost" href="index.html">Cerrar sesión</a>
-        <span></span>
+        <button class="btn ghost" onclick="logout()">Cerrar sesión</button>
       </div>
 
     </section>
   </main>
 
+  <script src="auth.js"></script>
   <script src="menu.js"></script>
+  <script>
+    // Inicializar permisos
+    document.addEventListener('DOMContentLoaded', () => {
+        applyMenuPermissions();
+    });
+  </script>
 </body>
 </html>
