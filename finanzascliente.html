@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TACTIQA | Carga de Documentos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+<div class="bg"></div>
+
+<main class="view active">
+  <section class="card form-card">
+
+    <div class="brand-row">
+      <img src="logo.jpg" alt="TACTIQA" onerror="this.style.display='none'"> 
+      <div>
+        <div class="brand-title">TACTIQA</div>
+        <div class="brand-sub">Información Financiera de la Empresa</div>
+      </div>
+    </div>
+
+    <div class="titlebar">
+      <h2>Carga de Documentación</h2>
+    </div>
+
+    <div class="note">
+      <b>Instrucciones:</b> Por favor cargue los documentos solicitados en formato PDF para continuar con el proceso de evaluación.
+    </div>
+
+    <div class="years">
+      <input type="number" id="year1" placeholder="Año 1 (ej. 2024)">
+      <input type="number" id="year2" placeholder="Año 2 (ej. 2023)">
+      <input type="number" id="year3" placeholder="Año 3 (ej. 2022)">
+    </div>
+
+    <section class="tabpanel active" id="panel-docs">
+      
+      <form id="docsForm" class="docs-grid">
+        
+        <div class="doc-group">
+          <h4>Balance General (auditado si aplica)</h4>
+          <p class="small-note">Suba el archivo correspondiente a cada año</p>
+          <div class="doc-box">
+            <label>Balance Año 1 <span class="req">*</span></label>
+            <input type="file" accept=".pdf" id="file-bg-0" required>
+          </div>
+          <div class="doc-box">
+            <label>Balance Año 2 <span class="req">*</span></label>
+            <input type="file" accept=".pdf" id="file-bg-1" required>
+          </div>
+          <div class="doc-box">
+            <label>Balance Año 3 <span class="req">*</span></label>
+            <input type="file" accept=".pdf" id="file-bg-2" required>
+          </div>
+        </div>
+
+        <div class="doc-group">
+          <h4>Estado de Resultados (auditado si aplica)</h4>
+          <p class="small-note">Suba el archivo correspondiente a cada año</p>
+          <div class="doc-box">
+            <label>Est. Resultados Año 1 <span class="req">*</span></label>
+            <input type="file" accept=".pdf" id="file-er-0" required>
+          </div>
+          <div class="doc-box">
+            <label>Est. Resultados Año 2 <span class="req">*</span></label>
+            <input type="file" accept=".pdf" id="file-er-1" required>
+          </div>
+          <div class="doc-box">
+            <label>Est. Resultados Año 3 <span class="req">*</span></label>
+            <input type="file" accept=".pdf" id="file-er-2" required>
+          </div>
+        </div>
+
+        <div class="doc-group">
+            <h4>Legales y Tributarios</h4>
+            <div class="doc-box"><label>Certificado RUC <span class="req">*</span></label><input type="file" id="file-ruc" required></div>
+            <div class="doc-box"><label>Copia Cédula Rep. Legal <span class="req">*</span></label><input type="file" id="file-cedula" required></div>
+            <div class="doc-box"><label>Nombramiento Vigente <span class="req">*</span></label><input type="file" id="file-nombramiento" required></div>
+            <div class="doc-box"><label>Balance Interno (Mes anterior) <span class="req">*</span></label><input type="file" id="file-interno" required></div>
+            <div class="doc-box"><label>Declaraciones IVA (6 meses) <span class="req">*</span></label><input type="file" id="file-iva" multiple required></div>
+        </div>
+        
+        <div class="doc-group">
+            <h4>Operativo (Opcional)</h4>
+            <div class="doc-box"><label>Facturas a negociar</label><input type="file" id="file-facturas" multiple></div>
+            <div class="doc-box"><label>Est. Cuenta Pagador</label><input type="file" id="file-pagador"></div>
+        </div>
+
+      </form>
+    </section>
+
+    <div class="actions">
+      <button class="btn ghost" type="button" onclick="window.location.reload()">Cancelar</button>
+      <button class="btn primary" type="button" id="btnSave">Guardar y Continuar</button>
+    </div>
+
+  </section>
+</main>
+
+<script src="finanzas-pro.js"></script>
+</body>
+</html>

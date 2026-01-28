@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TACTIQA | Informe de Riesgo</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    /* Estilos Generales (Pantalla Web) */
+    .report-info-bar { background: #f7f9fc; padding: 12px 16px; border-bottom: 1px solid #eef2f8; font-size: 13px; display: flex; gap: 24px; color: #6b7a90; margin-bottom: 20px;}
+    .report-info-bar strong { color: #0d0035; }
+    
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; padding: 0 6px; }
+    .kpi-card { background: #fff; border: 1px solid #eef2f8; border-radius: 8px; padding: 10px; text-align: center; }
+    .kpi-card label { font-size: 10px; text-transform: uppercase; color: #6b7a90; margin: 0 0 4px 0; display: block; }
+    .kpi-card .value { font-size: 14px; font-weight: 700; color: #0d0035; display: block; }
+    
+    .check-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #eef2f8; border-radius: 6px; margin-bottom: 8px; background: #fff; }
+    
+    #btnDownloadPDF { display: none; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: #fff; width: 500px; max-width: 90%; border-radius: 8px; overflow: hidden; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+
+    /* Evitar cortes de página en impresión */
+    .no-break, .pad, .titlebar, .kpi-grid, .check-item, .years, .grid.two, .brand-row {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* Enlaces de verificación */
+    .check-link {
+        font-size: 11px; 
+        color: #f44b00; 
+        text-decoration: underline; 
+        margin-left: 8px;
+    }
+    .check-link:hover { color: #d33f00; }
+
+    /* =========================================================
+       CORRECCIÓN DE VISUALIZACIÓN
+       ========================================================= */
+
+    /* 1. Estilo Normal en Pantalla */
+    #reportContent {
+        background: #ffffff;
+        padding: 30px 40px !important; 
+        margin: 0 auto;
+    }
+
+    /* 2. Estilo "Modo PDF" (Solo al descargar) */
+    #reportContent.pdf-mode {
+        max-width: 740px !important; 
+        width: 100% !important;
+        padding: 0 !important; 
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+    }
+
+    /* Ajustes de inputs cuando estamos en modo PDF */
+    .pdf-mode input, .pdf-mode select, .pdf-mode textarea {
+        font-size: 11px !important;
+        border: none !important;
+        border-bottom: 1px solid #eee !important;
+        background: transparent !important;
+        padding: 4px 0 !important;
+    }
+    
+    .pdf-mode .titlebar { padding: 5px 0 !important; }
+    .pdf-mode .grid.two { gap: 15px !important; }
+    .pdf-mode .check-link { text-decoration: none; color: #666; pointer-events: none; }
+
+  </style>
+</head>
+
+<body>
+<div class="bg"></div>
+
+<main class="view active">
+  <section class="card form-card" id="reportContent">
+
+    <div class="brand-row no-break" style="padding: 10px 0; border-bottom: 2px solid #f44b00;">
+      <img src="logo.jpg" alt="TACTIQA" onerror="this.style.display='none'" style="height: 45px;"> 
+      <div style="flex:1; padding-left: 10px;">
+        <div class="brand-title" style="font-size: 18px; color: #0d0035;">Informe de Riesgo Integral</div>
+        <div class="brand-sub" style="font-size: 12px; color: #666;">Análisis y Recomendación</div>
+      </div>
+      <button class="btn ghost small" id="btnViewDocs" data-html2canvas-ignore="true">
+        <i class="fa-solid fa-folder-open"></i> Ver Documentos
+      </button>
+    </div>
+
+    <div class="report-info-bar no-break" style="margin-top: 15px;">
+        <div><strong>Fecha:</strong> <span id="reportDate">--/--/----</span></div>
+        <div><strong>Analista:</strong> <span id="analystName">Usuario Operativo</span></div>
+    </div>
+
+    <div class="no-break">
+        <div class="titlebar" style="background: transparent; color: #0d0035; border-bottom: 1px solid #f44b00;">
+          <h2 style="color: #0d0035; margin:0;">1. Datos del Cliente</h2>
+        </div>
+        <div class="pad" style="padding-top: 10px; padding-left:0; padding-right:0;">
+            <div class="grid two">
+                <div class="col">
+                    <label>Empresa / Razón Social</label>
+                    <input type="text" id="txtEmpresa" readonly>
+                    <label style="margin-top:8px">RUC</label>
+                    <input type="text" id="txtRuc" readonly>
+                    <label style="margin-top:8px">Actividad Económica</label>
+                    <input type="text" id="txtActividad" readonly>
+                </div>
+                <div class="col">
+                    <label>Representante Legal</label>
+                    <input type="text" id="txtRepLegal" readonly>
+                    <label style="margin-top:8px">ID Representante</label>
+                    <input type="text" id="txtCiRep" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="no-break">
+        <div class="titlebar" style="background: transparent; color: #0d0035; border-bottom: 1px solid #f44b00;">
+            <h2 style="color: #0d0035; margin:0;">2. Historial Crediticio</h2>
+        </div>
+        <div class="pad" style="padding-top: 10px; padding-left:0; padding-right:0;">
+            <div class="years" style="grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                <div><label>Score</label><input type="number" id="scoreCredito" placeholder="Ej: 950"></div>
+                <div><label>Deuda ($)</label><input type="number" id="deudaReportada" placeholder="0.00"></div>
+                <div>
+                    <label>Moras</label>
+                    <select id="morasRegistradas">
+                        <option value="NO">NO REGISTRA</option>
+                        <option value="SI">SI REGISTRA</option>
+                    </select>
+                </div>
+            </div>
+            <label style="margin-top:10px">Observaciones</label>
+            <textarea id="obsBuro" rows="2" style="min-height: 40px; border:none; border-bottom:1px solid #eee;"></textarea>
+        </div>
+    </div>
+
+    <div class="no-break">
+        <div class="titlebar" style="background: transparent; color: #0d0035; border-bottom: 1px solid #f44b00;">
+            <h2 style="color: #0d0035; margin:0;">3. Índices Financieros</h2>
+        </div>
+        <div class="pad" style="padding-top: 10px; padding-left:0; padding-right:0;">
+            <div class="kpi-grid">
+                <div class="kpi-card"><label>Liquidez</label><span class="value">0.00</span></div>
+                <div class="kpi-card"><label>P. Ácida</label><span class="value">0.00</span></div>
+                <div class="kpi-card"><label>Margen Neto</label><span class="value">0.00%</span></div>
+                <div class="kpi-card"><label>ROA</label><span class="value">0.00%</span></div>
+                <div class="kpi-card"><label>ROE</label><span class="value">0.00%</span></div>
+                <div class="kpi-card"><label>Deuda/Act</label><span class="value">0.00</span></div>
+            </div>
+            <label style="margin-top:10px">Observaciones Financieras</label>
+            <textarea id="obsFin" rows="2" style="min-height: 40px; border:none; border-bottom:1px solid #eee;"></textarea>
+        </div>
+    </div>
+
+    <div class="no-break">
+        <div class="titlebar" style="background: transparent; color: #0d0035; border-bottom: 1px solid #f44b00;">
+            <h2 style="color: #0d0035; margin:0;">4. Verificaciones</h2>
+        </div>
+        <div class="pad" style="padding-top: 10px; padding-left:0; padding-right:0;">
+            
+            <div class="check-item">
+                <div class="check-info">
+                    <strong>Función Judicial</strong>
+                    <a href="https://procesosjudiciales.funcionjudicial.gob.ec/busqueda-filtros" target="_blank" class="check-link">
+                        Consultar <i class="fa-solid fa-up-right-from-square"></i>
+                    </a>
+                </div>
+                <select class="status-select" id="chkJudicial">
+                    <option value="ok">Sin Novedades</option>
+                    <option value="alert">Con Procesos</option>
+                </select>
+            </div>
+
+            <div class="check-item">
+                <div class="check-info">
+                    <strong>Deudas Firmes (SRI)</strong>
+                    <a href="https://srienlinea.sri.gob.ec/sri-en-linea/SriPagosWeb/ConsultaDeudasFirmesImpugnadas/Consultas/consultaDeudasFirmesImpugnadas" target="_blank" class="check-link">
+                        Consultar <i class="fa-solid fa-up-right-from-square"></i>
+                    </a>
+                </div>
+                <select class="status-select" id="chkSri">
+                    <option value="ok">Sin Deudas</option>
+                    <option value="alert">Con Deudas</option>
+                </select>
+            </div>
+
+            <div class="check-item">
+                <div class="check-info">
+                    <strong>Cumplimiento Patronal (IESS)</strong>
+                    <a href="https://www.iess.gob.ec/empleador-web/pages/morapatronal/certificadoCumplimientoPublico.jsf" target="_blank" class="check-link">
+                        Consultar <i class="fa-solid fa-up-right-from-square"></i>
+                    </a>
+                </div>
+                <select class="status-select" id="chkIess">
+                    <option value="ok">Al Día</option>
+                    <option value="alert">En Mora</option>
+                </select>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="no-break">
+        <div class="pad" style="padding-left:0; padding-right:0;">
+            <label style="font-size: 15px; color: #0d0035; font-weight:bold; margin-top:20px;">Conclusión y Recomendación</label>
+            <textarea id="txtConclusion" placeholder="Escriba su recomendación..." style="min-height: 100px; width:100%; border:1px solid #eee; background:#fafafa; padding:10px;"></textarea>
+        </div>
+    </div>
+
+    <div class="actions" data-html2canvas-ignore="true">
+        <button class="btn ghost" type="button" onclick="window.location.href='finanzas-pro.html'">Atrás</button>
+        
+        <button class="btn primary" type="button" id="btnFinalize">Finalizar Informe</button>
+        <button class="btn success" type="button" id="btnDownloadPDF">
+            <i class="fa-solid fa-file-pdf"></i> Descargar PDF
+        </button>
+    </div>
+
+  </section>
+</main>
+
+<div id="docsModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>Documentos Cargados</h3>
+        <div id="docsList"></div>
+        <button class="btn ghost small" onclick="document.getElementById('docsModal').classList.remove('active')" style="margin-top:10px;">Cerrar</button>
+    </div>
+</div>
+
+<script src="informe_riesgo.js"></script>
+</body>
+</html>
