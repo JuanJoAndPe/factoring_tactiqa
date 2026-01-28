@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TACTIQA | Comité de Crédito</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <style>
+    /* Estilos de solo lectura para la vista de aprobador */
+    .readonly-field { background: #fafafa; color: #444; pointer-events: none; border: 1px solid #eee; font-weight: 500;}
+    
+    .approval-zone { 
+        background: #fff; 
+        border-top: 4px solid #0d0035; 
+        padding: 30px 20px; 
+        margin-top: 30px;
+        box-shadow: 0 -10px 20px rgba(0,0,0,0.03);
+    }
+    
+    .decision-box {
+        border: 1px solid #eef2f8;
+        border-radius: 8px;
+        padding: 25px;
+        background: #f8f9fc;
+        border-left: 5px solid #6b7a90;
+        transition: all 0.3s ease;
+    }
+    
+    .decision-box.approved { border-left-color: #27ae60; background: #f0fff4; }
+    .decision-box.denied { border-left-color: #e74c3c; background: #fff5f5; }
+
+    .hidden { display: none; }
+    
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: #fff; width: 500px; max-width: 90%; border-radius: 8px; overflow: hidden; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+
+    .analyst-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        background: #eef2f8;
+        border-radius: 20px;
+        font-size: 11px;
+        color: #666;
+        margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+<div class="bg"></div>
+
+<main class="view active">
+  <section class="card form-card" id="approvalContent">
+
+    <div class="brand-row">
+      <img src="logo.jpg" alt="TACTIQA" onerror="this.style.display='none'"> 
+      <div style="flex:1;">
+        <div class="brand-title">Mesa de Aprobación</div>
+        <div class="brand-sub">Comité de Crédito & Riesgo</div>
+      </div>
+      <button class="btn ghost small" id="btnViewDocs">
+        <i class="fa-solid fa-folder-open"></i> Ver Documentos Adjuntos
+      </button>
+    </div>
+
+    <div class="titlebar">
+        <h2>1. Información del Solicitante</h2>
+    </div>
+    <div class="pad" style="padding-top:15px;">
+        <div class="grid two">
+            <div class="col">
+                <label>Razón Social</label>
+                <input type="text" id="viewEmpresa" class="readonly-field" readonly>
+            </div>
+            <div class="col">
+                <label>Identificación (RUC)</label>
+                <input type="text" id="viewRuc" class="readonly-field" readonly>
+            </div>
+        </div>
+    </div>
+
+    <div class="titlebar">
+        <h2>2. Dictamen del Analista de Riesgo</h2>
+    </div>
+    <div class="pad" style="padding-top:15px;">
+        <div class="analyst-badge"><i class="fa-solid fa-user-check"></i> Análisis validado por Operaciones</div>
+        
+        <div class="grid two">
+            <div class="col">
+                <label>Score Crediticio (Buró)</label>
+                <input type="text" id="viewScore" class="readonly-field" readonly>
+            </div>
+            <div class="col">
+                <label>Endeudamiento Financiero</label>
+                <input type="text" id="viewEndeudamiento" class="readonly-field" readonly>
+            </div>
+        </div>
+
+        <div style="margin-top:15px;">
+            <label>Conclusión y Recomendación del Analista</label>
+            <textarea id="viewConclusion" class="readonly-field" rows="3" readonly></textarea>
+        </div>
+        
+        <div class="grid two" style="margin-top:10px;">
+            <div class="col">
+                <label>Cumplimiento Legal</label>
+                <input type="text" id="viewJudicial" class="readonly-field" readonly>
+            </div>
+            <div class="col">
+                <label>Cumplimiento SRI</label>
+                <input type="text" id="viewSri" class="readonly-field" readonly>
+            </div>
+        </div>
+    </div>
+
+    <div class="approval-zone">
+        <h2 style="color:var(--primary); font-size:20px; margin-top:0; margin-bottom:20px;">
+            <i class="fa-solid fa-gavel"></i> Decisión del Comité
+        </h2>
+        
+        <div class="decision-box" id="decisionBox">
+            <label style="font-weight:700; color:var(--primary); font-size:14px;">RESOLUCIÓN FINAL</label>
+            <select id="selectDecision" style="font-size:16px; font-weight:600; height: 50px; margin-top:5px;">
+                <option value="" selected disabled>-- Seleccione una opción --</option>
+                <option value="APROBADO"> APROBAR SOLICITUD</option>
+                <option value="NEGADO"> NEGAR SOLICITUD</option>
+                <option value="DEVUELTO"> DEVOLVER PARA REANÁLISIS</option>
+            </select>
+
+            <div id="approvedFields" class="hidden" style="margin-top:25px; border-top:1px solid rgba(0,0,0,0.05); padding-top:20px;">
+                <h4 style="margin:0 0 15px 0; color:#27ae60; font-size:15px;">Condiciones Aprobadas</h4>
+                
+                <div class="grid two" style="gap:20px;">
+                    <div>
+                        <label class="req">Tasa de Interés (%)</label>
+                        <input type="number" id="inputTasa" placeholder="Ej: 1.5">
+                    </div>
+                    <div>
+                        <label class="req">Plazo / Días Factoring</label>
+                        <input type="number" id="inputDias" placeholder="Ej: 90">
+                    </div>
+                </div>
+                
+                <div style="margin-top:15px;">
+                    <label class="req" style="font-size:15px; color:#0d0035;">Cupo Total Aprobado (USD)</label>
+                    <input type="number" id="inputCupo" placeholder="0.00" style="font-weight:700; font-size:16px; color:#27ae60; border:1px solid #27ae60;">
+                </div>
+            </div>
+
+            <div id="deniedFields" class="hidden" style="margin-top:20px;">
+                <label class="req" style="color:#c0392b;">Motivo de la Negación</label>
+                <textarea id="txtMotivoNeg" placeholder="Detalle las razones del rechazo para notificación..." rows="3" style="border-color:#e74c3c;"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn primary full" type="button" id="btnSaveDecision" style="padding:15px; font-size:16px;">
+            Confirmar Decisión
+        </button>
+    </div>
+
+  </section>
+</main>
+
+<div id="docsModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="brand-row" style="border:none; padding:0 0 10px 0;">
+            <div class="brand-title">Documentos Adjuntos</div>
+        </div>
+        <div id="docsList"></div>
+        <button class="btn ghost small" onclick="document.getElementById('docsModal').classList.remove('active')" style="margin-top:15px; width:100%;">Cerrar</button>
+    </div>
+</div>
+
+<script src="aprobador.js"></script>
+</body>
+</html>

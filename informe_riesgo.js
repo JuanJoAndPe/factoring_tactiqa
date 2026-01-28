@@ -8,10 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDocuments();
     loadFinancialKPIs();
 
-    // Referencias
-    const btnFinalize = document.getElementById('btnFinalize');
+    // Referencias a botones (Asegúrate que en tu HTML el botón de enviar tenga id="btnSendToCommittee")
+    // Si todavía se llama "btnFinalize" en tu HTML, el script intentará buscarlo también.
+    const btnSend = document.getElementById('btnSendToCommittee') || document.getElementById('btnFinalize');
     const btnDownload = document.getElementById('btnDownloadPDF');
     const btnViewDocs = document.getElementById('btnViewDocs');
+    
     const modal = document.getElementById('docsModal');
     const reportContent = document.getElementById('reportContent');
 
@@ -25,46 +27,67 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target == modal) modal.classList.remove('active');
     }
 
-    // 2. FINALIZAR INFORME
-    btnFinalize.addEventListener('click', () => {
-        disableAllInputs();
-        alert("Informe finalizado. Ahora puede descargar el PDF.");
-        btnFinalize.style.display = 'none';
-        btnDownload.style.display = 'inline-flex';
-    });
+    // 2. ENVIAR A COMITÉ Y GUARDAR DATOS
+    if (btnSend) {
+        btnSend.addEventListener('click', () => {
+            // A) Recopilar todos los datos del formulario
+            const riskData = {
+                fecha: document.getElementById('reportDate').textContent,
+                score: document.getElementById('scoreCredito').value,
+                deuda: document.getElementById('deudaReportada').value,
+                moras: document.getElementById('morasRegistradas').value,
+                obsBuro: document.getElementById('obsBuro').value,
+                obsFin: document.getElementById('obsFin').value,
+                chkJudicial: document.getElementById('chkJudicial').value,
+                chkSri: document.getElementById('chkSri').value,
+                chkIess: document.getElementById('chkIess').value,
+                conclusion: document.getElementById('txtConclusion').value
+            };
 
-    // 3. GENERAR PDF (CON CLASE TEMPORAL PARA AJUSTAR ANCHO)
-    btnDownload.addEventListener('click', () => {
-        
-        // PASO CLAVE: Agregar clase para que se ajuste a ancho A4 SOLO durante la descarga
-        reportContent.classList.add('pdf-mode');
+            // B) Guardar en LocalStorage (Para que el Aprobador lo vea)
+            localStorage.setItem('tqa_risk_report_final', JSON.stringify(riskData));
 
-        const opt = {
-            margin:       15,
-            filename:     `Informe_${document.getElementById('txtEmpresa').value || 'Cliente'}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { 
-                scale: 2, 
-                useCORS: true, 
-                letterRendering: true,
-                scrollY: 0
-            },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-
-        // Generar y luego quitar la clase
-        html2pdf().set(opt).from(reportContent).save()
-        .then(() => {
-            // Restaurar vista de pantalla normal
-            reportContent.classList.remove('pdf-mode');
-        })
-        .catch(err => {
-            console.error("Error PDF:", err);
-            reportContent.classList.remove('pdf-mode'); // Asegurar que se restaure aunque falle
-            alert("Error al generar PDF.");
+            // C) Feedback visual y bloqueo
+            disableAllInputs();
+            alert("✅ Informe enviado correctamente al Comité de Crédito.\nAhora puede descargar su constancia en PDF.");
+            
+            // D) Ocultar botón de enviar y mostrar descargar
+            btnSend.style.display = 'none';
+            btnDownload.style.display = 'inline-flex';
         });
-    });
+    }
+
+    // 3. GENERAR PDF (Lógica original intacta)
+    if (btnDownload) {
+        btnDownload.addEventListener('click', () => {
+            
+            reportContent.classList.add('pdf-mode');
+
+            const opt = {
+                margin:       15,
+                filename:     `Informe_${document.getElementById('txtEmpresa').value || 'Cliente'}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { 
+                    scale: 2, 
+                    useCORS: true, 
+                    letterRendering: true,
+                    scrollY: 0
+                },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            html2pdf().set(opt).from(reportContent).save()
+            .then(() => {
+                reportContent.classList.remove('pdf-mode');
+            })
+            .catch(err => {
+                console.error("Error PDF:", err);
+                reportContent.classList.remove('pdf-mode');
+                alert("Error al generar PDF.");
+            });
+        });
+    }
 
     // --- FUNCIONES AUXILIARES ---
 
@@ -162,16 +185,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const inputs = document.querySelectorAll('input, select, textarea');
         inputs.forEach(input => {
             input.disabled = true;
-            // Estilos solo para cuando se bloquea, pero en pantalla se ve normal
-            // El estilo de impresión lo maneja la clase .pdf-mode en CSS
             input.style.backgroundColor = "#fafafa";
             input.style.border = "1px solid #eee";
             
+            // Convertir selects a texto plano para que se vean mejor bloqueados
             if(input.tagName === 'SELECT'){
                 const text = input.options[input.selectedIndex]?.text || "";
                 const span = document.createElement('span');
                 span.textContent = text;
                 span.style.fontWeight = '600';
+                span.style.display = 'block';
+                span.style.padding = '10px';
                 input.parentNode.replaceChild(span, input);
             }
         });
