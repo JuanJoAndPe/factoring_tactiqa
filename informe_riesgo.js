@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 values[3].textContent = kpis.roa;
                 values[4].textContent = kpis.roe;
                 values[5].textContent = kpis.endeudamiento;
+                values[6].textContent = kpis.ebitda;
             }
         } catch (e) { console.error(e); }
     }

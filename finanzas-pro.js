@@ -3,7 +3,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 
 // Mapeos Contables
 const MAP_BG = { "ACTIVO CORRIENTE": "101", "ACTIVO NO CORRIENTE": "102", "INVENTARIOS": "10103", "ACTIVO": "1", "PASIVO CORRIENTE": "201", "PASIVO NO CORRIENTE": "202", "PASIVO": "2", "PATRIMONIO NETO": "3", "RESULTADOS DEL EJERCICIO": "307" };
-const MAP_ER = { "INGRESOS DE ACTIVIDADES ORDINARIAS": "401", "GANANCIA BRUTA": "402", "OTROS INGRESOS": "403", "COSTO DE VENTAS Y PRODUCCIÓN": "501", "GANANCIA ANTES DE IMPUESTOS": "602", "IMPUESTO A LA RENTA CAUSADO": "603", "GANANCIA NETA DEL PERIODO": "707" };
+const MAP_ER = { "INGRESOS DE ACTIVIDADES ORDINARIAS": "401", "GANANCIA BRUTA": "402", "OTROS INGRESOS": "403", "COSTO DE VENTAS Y PRODUCCIÓN": "501", "GASTOS FINANCIEROS":"50203", "GANANCIA ANTES DE IMPUESTOS": "602", "IMPUESTO A LA RENTA CAUSADO": "603", "GANANCIA NETA DEL PERIODO": "707" };
 
 // Lógica de Tabs
 document.querySelectorAll('.tab').forEach(tab => {
@@ -117,15 +117,18 @@ document.getElementById('btnSave').addEventListener('click', () => {
     const pas = getVal('table-bg', 'PASIVO');
     const pat = getVal('table-bg', 'PATRIMONIO NETO');
     const util = getVal('table-er', 'GANANCIA NETA DEL PERIODO');
+    const utilbruta = getVal('table-er', 'GANANCIA ANTES DE IMPUESTOS')
     const ventas = getVal('table-er', 'INGRESOS DE ACTIVIDADES ORDINARIAS');
-
+    const gtofinanciero = getVal('table-er','GASTOS FINANCIEROS');
+   
     const kpis = {
         liquidez: pasCte ? (actCte/pasCte).toFixed(2) : "0.00",
         pruebaAcida: pasCte ? ((actCte-inv)/pasCte).toFixed(2) : "0.00",
         margenNeto: ventas ? ((util/ventas)*100).toFixed(2)+"%" : "0.00%",
         roa: act ? ((util/act)*100).toFixed(2)+"%" : "0.00%",
         roe: pat ? ((util/pat)*100).toFixed(2)+"%" : "0.00%",
-        endeudamiento: act ? (pas/act).toFixed(2) : "0.00"
+        endeudamiento: act ? (pas/act).toFixed(2) : "0.00",
+        ebitda: (utilbruta + gtofinanciero).toFixed(2),
     };
 
     localStorage.setItem('tqa_financial_kpis', JSON.stringify(kpis));
