@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const docsForm = document.getElementById('docsForm');
 
     btnSave.addEventListener('click', () => {
-        // 1. Validación básica de HTML5
+        // 1. Validación básica
         if (!docsForm.checkValidity()) {
             alert("Por favor, cargue todos los documentos obligatorios marcados con asterisco (*).");
             docsForm.reportValidity(); 
@@ -33,7 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     cco_sri: getFileInfo('file-sri'),
                 },
                 tratamiento_datos: getFileInfo('file-autorizacion'),
-                // Nota: Agrega aquí los operativos si también necesitas guardarlos en el objeto
+                operativo: {
+                    facturas: getFileInfo('file-facturas'),
+                    retenciones: getFileInfo('file-retenciones'),
+                    guia: getFileInfo('file-guia'),
+                    pagador: getFileInfo('file-pagador')
+                }
             },
             timestamp: new Date().toISOString()
         };
@@ -43,11 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('finanzasPro_DocsTemp', JSON.stringify(filesData));
             console.log('Datos guardados localmente:', filesData);
             
-            alert("Documentos guardados con éxito.");
+            alert("Información cargada exitosamente. Por favor, inicie sesión.");
             
-            // --- CAMBIO REALIZADO AQUÍ ---
-            // Redirige al menú del perfil del cliente
-            window.location.href = 'menu_cliente.html'; 
+            // REDIRECCIÓN AL LOGIN
+            window.location.href = 'index.html'; 
             
         } catch (e) {
             console.error('Error al guardar en local storage', e);

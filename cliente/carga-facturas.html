@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Carga de Facturas | INTERNATIONAL FACTORING</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="stylescargafact.css" />
+</head>
+
+<body>
+  <div class="bg"></div>
+
+  <main class="view active">
+    <section class="card form-card">
+
+      <div class="brand-row">
+        <img src="LOGOIF.png" class="brand-logo-mini" alt="IF" onerror="this.style.display='none'"/>
+        <div style="flex:1">
+          <div class="brand-mini-text">INTERNATIONAL FACTORING</div>
+          <div class="brand-mini-sub">Carga de Facturas (Conexión Real SRI)</div>
+        </div>
+        <button class="btn ghost small" onclick="window.location.href='menu.html'">
+          <span class="arrow">⬅</span> Menú
+        </button>
+      </div>
+
+      <div class="pad" style="padding-top:20px;">
+        
+        <div class="action-bar">
+            <div class="input-group">
+                <label>DIGITAR CLAVE DE ACCESO (49 dígitos)</label>
+                <input type="text" id="inputClave" maxlength="49" placeholder="Pegue la clave aquí..." onkeydown="if(event.key === 'Enter') agregarManual()">
+            </div>
+            <button class="btn primary" style="height:42px; min-width:100px;" onclick="agregarManual()">+ Agregar</button>
+            <div class="txt-importer">
+                <span style="font-size:12px; color:var(--muted)">O carga masiva:</span>
+                <button class="btn ghost small" onclick="document.getElementById('fileTxt').click()">📄 Importar TXT</button>
+                <input type="file" id="fileTxt" accept=".txt" style="display:none" onchange="procesarTXT(this)">
+            </div>
+        </div>
+        <small id="errorMsg" style="color:red; display:none; margin-top:-10px; margin-bottom:10px;">⚠️ Clave inválida.</small>
+
+        <div class="table-responsive">
+          <table class="fin-table" id="tablaFacturas">
+            <colgroup>
+                <col class="col-idx"><col class="col-key"><col class="col-info"><col class="col-monto"><col class="col-estado"><col class="col-accion">
+            </colgroup>
+            <thead>
+              <tr><th>#</th><th>Clave de Acceso</th><th>Emisor (SRI)</th><th>Importe (SRI)</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody id="tablaBody"></tbody>
+          </table>
+          <div id="emptyMsg" style="text-align:center; padding:30px; color:var(--muted); font-size:13px;">No hay facturas en lista.</div>
+        </div>
+
+        <div style="margin-top:25px; border-top:1px solid #eef2f8; padding-top:15px;">
+            <div style="font-weight:700; color:var(--primary); font-size:14px; margin-bottom:10px;">Carga de Archivos Digitales</div>
+            <div class="support-grid">
+                <div class="compact-upload required" onclick="document.getElementById('fileFacturas').click()">
+                    <span style="font-size:24px;">📄</span>
+                    <div style="font-weight:700; font-size:13px; color:var(--accent);">Facturas (PDF)</div>
+                    <div style="font-size:11px; color:var(--muted);" id="lblFacturas">Obligatorio</div>
+                    <input type="file" id="fileFacturas" multiple accept=".pdf" style="display:none" onchange="updateLabel('fileFacturas','lblFacturas', true)">
+                </div>
+                <div class="compact-upload" onclick="document.getElementById('fileRet').click()">
+                    <span style="font-size:24px;">📎</span>
+                    <div style="font-weight:600; font-size:13px;">Retenciones</div>
+                    <div style="font-size:11px; color:var(--muted);" id="lblRet">Opcional</div>
+                    <input type="file" id="fileRet" multiple accept=".pdf" style="display:none" onchange="updateLabel('fileRet','lblRet', false)">
+                </div>
+                <div class="compact-upload" onclick="document.getElementById('fileGuia').click()">
+                    <span style="font-size:24px;">🚚</span>
+                    <div style="font-weight:600; font-size:13px;">Guías de Remisión</div>
+                    <div style="font-size:11px; color:var(--muted);" id="lblGuia">Opcional</div>
+                    <input type="file" id="fileGuia" multiple accept=".pdf" style="display:none" onchange="updateLabel('fileGuia','lblGuia', false)">
+                </div>
+            </div>
+        </div>
+
+        <div class="actions" style="margin-top:20px;">
+            <button class="btn primary" onclick="guardarTodo()">Guardar y Procesar</button>
+        </div>
+
+      </div>
+    </section>
+  </main>
+  
+  <script src="auth.js"></script>
+  <script src="carga-facturas.js"></script>
+</body>
+</html>

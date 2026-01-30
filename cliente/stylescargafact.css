@@ -1,0 +1,38 @@
+/* === ESTILOS (Mantenemos tu diseño limpio) === */
+    .action-bar {
+      background: #f8f9fc;
+      border: 1px solid #eef2f8;
+      border-radius: 8px;
+      padding: 15px 20px;
+      display: flex; gap: 15px; align-items: flex-end;
+      margin-bottom: 20px;
+    }
+    .input-group { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .input-group label { margin: 0; color: var(--muted); font-weight: 600; font-size: 12px; }
+    .input-group input { font-family: 'Courier New', monospace; font-size: 14px; height: 42px; border-color: #d1d9e6; }
+    .txt-importer { display: flex; align-items: center; gap: 8px; padding-left: 15px; border-left: 1px solid #dcdfe6; height: 42px; }
+    
+    .table-responsive { width: 100%; overflow-x: auto; }
+    #tablaFacturas { table-layout: fixed; width: 100%; min-width: 800px; }
+    
+    .col-idx { width: 40px; text-align: center; }
+    .col-key { width: 320px; } 
+    .col-info { width: auto; } 
+    .col-monto { width: 120px; text-align: right; }
+    .col-estado { width: 120px; text-align: center; }
+    .col-accion { width: 60px; text-align: center; }
+
+    #tablaFacturas td { vertical-align: middle; padding: 8px 10px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .key-cell { font-family: 'Courier New', monospace; font-size: 11px; white-space: normal !important; word-break: break-all; line-height: 1.1; color: #555; }
+
+    .support-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 10px; }
+    .compact-upload { border: 1px dashed #ced4da; background: #fff; padding: 15px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; cursor: pointer; transition: all 0.2s; }
+    .compact-upload:hover { border-color: var(--accent); background: #fcfdfe; transform: translateY(-2px); }
+    .compact-upload.required { border: 1px dashed var(--accent); background: rgba(42, 74, 115, 0.03); }
+
+    .status-badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .status-valid { background: #d1e7dd; color: #0f5132; }
+    .status-err { background: #f8d7da; color: #842029; }
+    .status-wait { background: #fff3cd; color: #664d03; }
+
+    @media (max-width: 900px) { .support-grid { grid-template-columns: 1fr; } }

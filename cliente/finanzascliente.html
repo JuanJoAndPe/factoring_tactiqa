@@ -78,17 +78,17 @@
 
         <div class="right-column-group">
           <div class="doc-group">
-              <h4>Tratamiento de datos</h4>
-              <div class="doc-box"><label>Autorización de buró de crédito y tratamiento de datos<span class="req">*</span></label><input type="file" id="file-autorizacion" required></div>
-          </div>
-
-          <div class="doc-group">
               <h4>Operativo (Opcional)</h4>
               <div class="doc-box"><label>Facturas a negociar</label><input type="file" id="file-facturas" multiple></div>
               <div class="doc-box"><label>Retenciones</label><input type="file" id="file-retenciones"></div>
               <div class="doc-box"><label>Guía de Remisión</label><input type="file" id="file-guia"></div>
               <div class="doc-box"><label>Est. Cuenta Pagador</label><input type="file" id="file-pagador"></div>
           </div>          
+
+          <div class="doc-group">
+              <h4>Tratamiento de datos</h4>
+              <div class="doc-box"><label>Autorización de buró de crédito y tratamiento de datos<span class="req">*</span></label><input type="file" id="file-autorizacion" required></div>
+          </div>
         </div>
       </form>
     </section>
@@ -100,6 +100,11 @@
 
   </section>
 </main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
 
 <script src="finanzascliente.js"></script>
 </body>
