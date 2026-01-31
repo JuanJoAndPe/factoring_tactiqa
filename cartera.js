@@ -1,85 +1,96 @@
 (function() {
     "use strict";
 
-    // 1. Obtener sesión segura desde auth.js
-    // Usamos getSession() para asegurar que leemos el usuario logueado correctamente
+    // 1. Obtener sesión
     const session = typeof getSession === 'function' ? getSession() : null;
-    
-    // Si no hay sesión, auth.js se encarga de redirigir, pero por seguridad paramos aquí.
     if (!session) return; 
 
     const userRole = session.role;
-    const userId = session.id;
-
-    // Definimos quién tiene permiso de editar (Aprobador o Admin)
+    
+    // DEFINICIÓN DE PERMISOS
+    const esCliente = userRole === 'CLIENTE';
+    const esStaff = !esCliente; // Comercial, Operativo, Aprobador, Admin
     const esAprobador = ['ADMIN', 'APROBADOR'].includes(userRole);
 
-    console.log(`Cargando Cartera. Usuario: ${session.name} (${userRole}). Modo Aprobador: ${esAprobador}`);
+    console.log(`Cargando Cartera. Rol: ${userRole}. Es Staff: ${esStaff}. Puede Aprobar: ${esAprobador}`);
+
+    // ========= VARIABLES =========
+    const STORAGE_KEY = "db_cartera_lotes";
+    let memoryLotes = []; 
+
+    // ========= DOM ELEMENTS =========
+    const tbody = document.getElementById("tbodyCartera");
+    const emptyMsg = document.getElementById("emptyMsg");
+    const thAcciones = document.getElementById("thAcciones");
+    const thCliente = document.getElementById("thCliente");
+    const inputBusqueda = document.getElementById("inputBusqueda");
 
     // ========= HELPERS =========
     const formatMoney = v => Number(v || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
     const formatDate = iso => {
       if (!iso) return "--";
       const d = new Date(iso);
-      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth() + 1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth() + 1).padStart(2,'0')}/${d.getFullYear()}`;
     };
 
-    // ========= ELEMENTOS DOM =========
-    const STORAGE_KEY = "db_cartera_lotes";
-    const tbody = document.getElementById("tbodyCartera");
-    const emptyMsg = document.getElementById("emptyMsg");
-    const thAcciones = document.getElementById("thAcciones");
+    // ========= CARGA DE DATOS =========
+    function loadData() {
+        memoryLotes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        
+        // Si es CLIENTE, filtramos para que solo vea SUS lotes (simulado por ahora, 
+        // en producción filtraríamos por session.id)
+        /* if(esCliente) {
+            memoryLotes = memoryLotes.filter(l => l.usuarioId === session.id);
+        }
+        */
+        
+        renderTable(memoryLotes);
+    }
 
     // ========= RENDERIZADO =========
-    function renderTable() {
-        // A. Controlar visibilidad de la columna Acción (Header)
-        if (thAcciones) {
-            thAcciones.style.display = esAprobador ? '' : 'none';
-        }
-
-        // B. Leer datos de la base de datos simulada
-        let lotes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        
-        // FILTRO OPCIONAL: Si quisieras que el Cliente solo vea SUS lotes
-        // if (userRole === 'CLIENTE') {
-        //    lotes = lotes.filter(l => l.usuarioId === userId); // Requiere guardar usuarioId al crear el lote
-        // }
+    function renderTable(listaDatos) {
+        // 1. Gestión de Columnas
+        if (thCliente) thCliente.style.display = esStaff ? '' : 'none'; // Comercial ve Cliente
+        if (thAcciones) thAcciones.style.display = esAprobador ? '' : 'none'; // Solo Aprobador ve Acciones
 
         tbody.innerHTML = "";
 
-        if (lotes.length === 0) {
+        if (listaDatos.length === 0) {
             if(emptyMsg) emptyMsg.style.display = 'block';
             return;
         }
         if(emptyMsg) emptyMsg.style.display = 'none';
 
-        // C. Renderizar filas (Inverso para ver recientes primero)
-        [...lotes].reverse().forEach((lote, index) => {
-            const realIndex = lotes.length - 1 - index; 
-
+        // 2. Generar Filas
+        [...listaDatos].reverse().forEach((lote) => {
+            const originalIndex = memoryLotes.findIndex(item => item.id === lote.id);
             const tr = document.createElement("tr");
             
-            // Estilos de Badge según estado
+            // Badge Estado
             let badgeClass = "badge"; 
             if(lote.estado === "PENDIENTE") badgeClass = "badge warn";
             else if(lote.estado === "APROBADO") badgeClass = "badge ok"; 
-            else if(lote.estado === "RECHAZADO") badgeClass = "badge" // Rojo o default
+            else if(lote.estado === "RECHAZADO") badgeClass = "badge bad"; 
 
-            // Celda de Acción (Solo se construye si es Aprobador)
-            let celdaAccion = "";
-            
+            // A. Celda Cliente (Solo para Staff/Comercial)
+            let celdaClienteHTML = "";
+            if (esStaff) {
+                // Si el lote no tiene nombre guardado, mostramos uno genérico o el del pagador
+                const nombreCli = lote.usuarioNombre || "Cliente Desconocido";
+                celdaClienteHTML = `<td style="font-weight:600; color:var(--primary);">${nombreCli}</td>`;
+            }
+
+            // B. Celda Acción (Solo para Aprobador)
+            let celdaAccionHTML = "";
             if (esAprobador) {
-                // Bloquear si ya está decidido
                 const disabledAttr = (lote.estado === "APROBADO" || lote.estado === "RECHAZADO") ? "disabled" : "";
-                
-                // Color visual para el select si está deshabilitado
                 const styleSelect = disabledAttr ? "background:#f9f9f9; color:#999;" : "background:#fff; color:#333;";
 
-                celdaAccion = `
+                celdaAccionHTML = `
                     <td>
-                        <select onchange="cambiarEstado(${realIndex}, this.value)" ${disabledAttr} 
+                        <select onchange="cambiarEstado(${originalIndex}, this.value)" ${disabledAttr} 
                                 style="padding:4px; border-radius:4px; border:1px solid #ccc; font-size:12px; width:100%; ${styleSelect}">
-                            <option value="" disabled selected>-- Decisión --</option>
+                            <option value="" disabled selected>--</option>
                             <option value="APROBADO">✅ Aprobar</option>
                             <option value="RECHAZADO">❌ Rechazar</option>
                             <option value="PENDIENTE">⏳ Pendiente</option>
@@ -90,38 +101,96 @@
 
             tr.innerHTML = `
                 <td style="font-size:12px;">${formatDate(lote.fecha)}</td>
-                <td style="font-family:monospace; font-weight:bold; color:var(--primary);">${lote.id}</td>
+                ${celdaClienteHTML}
+                <td style="font-family:monospace; font-weight:bold;">${lote.id}</td>
                 <td>${lote.pagador}</td>
-                <td style="text-align:center;">${lote.cantidadDocs}</td>
                 <td style="text-align:right; font-weight:bold;">${formatMoney(lote.total)}</td>
                 <td style="text-align:center;"><span class="${badgeClass}">${lote.estado}</span></td>
-                ${celdaAccion} 
+                ${celdaAccionHTML}
             `;
             tbody.appendChild(tr);
         });
     }
 
-    // ========= FUNCIÓN GLOBAL PARA CAMBIAR ESTADO =========
-    window.cambiarEstado = function(index, nuevoEstado) {
-        if(!esAprobador) return; // Seguridad extra
+    // ========= FILTRADO =========
+    if(inputBusqueda){
+        inputBusqueda.addEventListener("keyup", (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtrados = memoryLotes.filter(lote => 
+                (lote.pagador && lote.pagador.toLowerCase().includes(term)) ||
+                (lote.id && lote.id.toLowerCase().includes(term)) ||
+                (lote.estado && lote.estado.toLowerCase().includes(term)) ||
+                (lote.usuarioNombre && lote.usuarioNombre.toLowerCase().includes(term))
+            );
+            renderTable(filtrados);
+        });
+    }
 
-        if(!confirm(`¿Confirma cambiar el estado de este lote a ${nuevoEstado}?`)) {
-            renderTable(); // Revertir visualmente si cancela
+    // ========= CAMBIAR ESTADO =========
+    window.cambiarEstado = function(index, nuevoEstado) {
+        if(!esAprobador) return;
+
+        if(!confirm(`¿Confirma cambiar el estado a ${nuevoEstado}?`)) {
+            loadData(); 
             return;
         }
 
-        const lotes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        if(lotes[index]) {
-            lotes[index].estado = nuevoEstado;
-            // Aquí podríamos agregar fecha de aprobación o quién lo aprobó
-            lotes[index].aprobadoPor = session.name;
-            lotes[index].fechaAprobacion = new Date().toISOString();
+        if(memoryLotes[index]) {
+            memoryLotes[index].estado = nuevoEstado;
+            memoryLotes[index].aprobadoPor = session.name;
+            memoryLotes[index].fechaAprobacion = new Date().toISOString();
         }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(lotes));
-        renderTable();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryLotes));
+        
+        // Refrescar manteniendo filtro
+        const term = inputBusqueda.value.toLowerCase();
+        if(term && term.length > 0) {
+             inputBusqueda.dispatchEvent(new Event('keyup'));
+        } else {
+            renderTable(memoryLotes);
+        }
     };
 
-    // ========= INICIALIZAR =========
-    renderTable();
+    // ========= EXPORTAR EXCEL =========
+    window.exportarExcel = function() {
+        if(memoryLotes.length === 0) { alert("Sin datos."); return; }
 
+        let csvContent = "data:text/csv;charset=utf-8,";
+        // Encabezados dinámicos según rol
+        let header = "Fecha,ID Lote,Pagador,Total,Estado";
+        if(esStaff) header += ",Cliente Solicitante";
+        if(esAprobador) header += ",Aprobado Por";
+        csvContent += header + "\n";
+
+        // Obtener datos visibles (filtrados)
+        const term = inputBusqueda.value.toLowerCase();
+        const dataToExport = term 
+            ? memoryLotes.filter(l => 
+                (l.pagador && l.pagador.toLowerCase().includes(term)) || 
+                (l.id && l.id.toLowerCase().includes(term)))
+            : memoryLotes;
+
+        dataToExport.forEach(row => {
+            const fecha = formatDate(row.fecha);
+            const total = row.total.toFixed(2);
+            const pagador = `"${(row.pagador || '').replace(/"/g, '""')}"`;
+            
+            let line = `${fecha},${row.id},${pagador},${total},${row.estado}`;
+            if(esStaff) line += `,${row.usuarioNombre || 'N/A'}`;
+            if(esAprobador) line += `,${row.aprobadoPor || '-'}`;
+            
+            csvContent += line + "\n";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `cartera_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Inicio
+    loadData();
 })();

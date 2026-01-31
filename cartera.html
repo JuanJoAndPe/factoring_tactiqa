@@ -30,29 +30,42 @@
   </div>
 
   <div class="note">
-    Visualice el estado de sus cargas de facturas o gestione aprobaciones pendientes.
+    Visualice el estado de las cargas de facturas y operaciones.
+  </div>
+
+  <div class="clients-toolbar" style="border-bottom: none; padding-bottom: 5px;">
+      <div class="field" style="margin:0; flex: 1;">
+          <input type="text" id="inputBusqueda" placeholder="🔍 Buscar..." 
+                 style="height: 42px; background: white;">
+      </div>
+      <div class="clients-actions">
+          <button class="btn success" onclick="exportarExcel()" title="Descargar reporte">
+              📊 Exportar Excel
+          </button>
+      </div>
   </div>
 
   <div class="table-wrap">
     <table class="fin-table" id="tablaCartera">
       <thead>
         <tr>
-          <th>Fecha Solicitud</th>
+          <th>Fecha</th>
+          
+          <th id="thCliente" style="display:none; color:var(--primary);">Cliente Solicitante</th>
+          
           <th>ID Lote</th>
           <th>Pagador (Deudor)</th>
-          <th style="text-align:center;">Docs</th>
           <th style="text-align:right;">Total Lote</th>
           <th style="text-align:center;">Estado</th>
           
-          <th id="thAcciones">Acción (Aprobador)</th>
-          
+          <th id="thAcciones">Acción</th>
         </tr>
       </thead>
       <tbody id="tbodyCartera">
         </tbody>
     </table>
     <div id="emptyMsg" style="text-align:center; padding:30px; color:var(--muted); display:none;">
-        No hay registros disponibles.
+        No se encontraron registros.
     </div>
   </div>
 
@@ -62,7 +75,6 @@
 <script src="auth.js"></script>
 <script src="cartera.js"></script>
 <script>
-    // Activamos la seguridad al cargar
     if(typeof checkAuth === 'function') checkAuth();
 </script>
 </body>

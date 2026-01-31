@@ -80,9 +80,17 @@ function parseNumber(str) {
     return isNaN(v) ? 0 : (neg ? v * -1 : v);
 }
 
-// === BOTÓN GUARDAR ===
+// === LÓGICA DE GUARDADO Y REDIRECCIÓN ===
 document.getElementById('btnSave').addEventListener('click', () => {
-    // 1. Guardar Lista de Documentos (Metadatos)
+    
+    // 1. Validar Checkbox Términos
+    const checkTerms = document.getElementById('checkTerminos');
+    if (!checkTerms.checked) {
+        alert("⚠️ Debe autorizar los términos y condiciones para continuar.");
+        return;
+    }
+
+    // 2. Guardar Documentos (Metadatos)
     const docList = [];
     document.querySelectorAll('input[type="file"]').forEach(input => {
         if (input.files.length > 0) {
@@ -93,17 +101,7 @@ document.getElementById('btnSave').addEventListener('click', () => {
         }
     });
 
-    localStorage.setItem('finanzasPro_DocsTemp', JSON.stringify({
-        years: { 
-            year1: document.getElementById('year1').value, 
-            year2: document.getElementById('year2').value, 
-            year3: document.getElementById('year3').value 
-        },
-        documents: docList, // Importante: Guarda la lista aquí
-        timestamp: new Date().toISOString()
-    }));
-
-    // 2. Calcular KPIs (Basado en Año 1 - Columna 0)
+    // 3. Guardar KPIs y Datos Financieros
     const getVal = (tid, key) => {
         const row = document.getElementById(tid)?.querySelector(`tr[data-key="${key}"]`);
         const val = row?.querySelectorAll('input')[0]?.value?.replace(/,/g, '') || 0;
@@ -131,8 +129,39 @@ document.getElementById('btnSave').addEventListener('click', () => {
         ebitda: (utilbruta + gtofinanciero).toFixed(2),
     };
 
-    localStorage.setItem('tqa_financial_kpis', JSON.stringify(kpis));
+    // Obtener ID del cliente de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('clientId');
 
-    alert("Guardado correctamente. Redirigiendo al informe...");
-    window.location.href = "informe_riesgo.html";
+    // 4. Actualizar Estado del Cliente (Si existe ID)
+    if (clientId) {
+        const clientes = JSON.parse(localStorage.getItem('tactiqa_clientes') || "[]");
+        const clienteIndex = clientes.findIndex(c => c.id === clientId);
+        if (clienteIndex >= 0) {
+            clientes[clienteIndex].estado = "Pendiente"; // Actualizar estado para Tareas/Lista
+            // Opcional: Guardar KPIs en el objeto del cliente si se requiere persistencia fuerte
+            // clientes[clienteIndex].kpis = kpis;
+            localStorage.setItem('tactiqa_clientes', JSON.stringify(clientes));
+        }
+        
+        // Guardar KPIs específicos para el dashboard/informe de ese cliente
+        localStorage.setItem(`tqa_financial_kpis_${clientId}`, JSON.stringify(kpis));
+    } else {
+        // Fallback legado (sin ID)
+        localStorage.setItem('tqa_financial_kpis', JSON.stringify(kpis));
+    }
+
+    alert("✅ Información guardada y enviada a aprobación.");
+
+    // 5. Redirección por Rol
+    const session = JSON.parse(localStorage.getItem('tqa_session'));
+    const userRole = session ? session.role : '';
+
+    if (userRole === 'COMERCIAL' && clientId) {
+        // Si es Comercial, ir al Dashboard del Cliente creado (Modo Monitoreo)
+        window.location.href = `cliente-dashboard.html?id=${clientId}`;
+    } else {
+        // Flujo normal (Operativo/Admin va al Informe)
+        window.location.href = "informe_riesgo.html";
+    }
 });

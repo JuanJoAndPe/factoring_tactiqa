@@ -1,8 +1,3 @@
-const IVA = 0.15;
-const ANTICIPO = 0.15;
-const FACTOR = 0.000633;
-const FACTOR_ADM = 0.000167;
-
 const facturas = [];
 const $ = (id) => document.getElementById(id);
 
@@ -14,79 +9,89 @@ function num(v){
 function fix(v){ return Number(v || 0).toFixed(2); }
 
 function addFactura(){
+  // 1. Obtener valores
   const dias = num($("dias").value);
   const subtotal = num($("subtotal").value);
   const retFte = num($("retFte").value);
   const retIva = num($("retIva").value);
-
+  
+  // Validación básica
   if(subtotal <= 0){
     alert("Ingresa un subtotal válido.");
     return;
   }
 
-  const iva = subtotal * IVA;
-  const total = subtotal + iva;
+  // --- CÁLCULOS (Según nueva instrucción) ---
 
-  const liquido = total - retFte - retIva;
-  const anticipado = liquido * (1 - ANTICIPO);
+  // 1. Valor Líquido
+  // Fórmula: subtotal - retencion fuente - retencion iva
+  const liquido = subtotal - retFte - retIva;
 
-  const dscto = anticipado * FACTOR * dias;
-  const gastoAdm = anticipado * FACTOR_ADM * dias;
-  const ivaGAdm = gastoAdm * IVA;
+  // 2. Retención 20%
+  // Fórmula: valor liquido * 20%
+  const retencion20 = liquido * 0.20;
 
-  const totalGasto = dscto + gastoAdm + ivaGAdm;
-  const depositar = anticipado - totalGasto;
+  // 3. Valor Anticipado (Valor a Desembolsar)
+  // Fórmula: valor liquido - retencion 20%
+  const anticipado = liquido - retencion20;
 
-  facturas.push({ dias, total, anticipado, dscto, depositar });
+  // Guardar en arreglo
+  facturas.push({ dias, subtotal, liquido, retencion20, anticipado });
+  
   render();
 
+  // Limpiar campos
   $("dias").value = "";
   $("subtotal").value = "";
   $("retFte").value = "";
   $("retIva").value = "";
+  $("subtotal").focus();
 }
 
 function render(){
   const tbody = document.querySelector("#tablaFacturas tbody");
   tbody.innerHTML = "";
 
-  let tTotal = 0, tAnt = 0, tDscto = 0, tDep = 0;
+  let tLiquido = 0, tRet = 0, tAnt = 0;
 
   facturas.forEach((f, i) => {
-    tTotal += f.total;
+    tLiquido += f.liquido;
+    tRet += f.retencion20;
     tAnt += f.anticipado;
-    tDscto += f.dscto;
-    tDep += f.depositar;
 
     const tr = document.createElement("tr");
 
-    // ✅ EXACTAMENTE 6 <td> en el mismo orden del <thead>
+    // Construcción de celdas
     const tdDias = document.createElement("td");
-    tdDias.textContent = String(f.dias);
+    tdDias.textContent = String(f.dias || 0); // Días es solo referencial ahora
 
-    const tdTotal = document.createElement("td");
-    tdTotal.textContent = fix(f.total);
+    const tdSub = document.createElement("td");
+    tdSub.textContent = fix(f.subtotal);
+
+    const tdLiq = document.createElement("td");
+    tdLiq.textContent = fix(f.liquido);
+    tdLiq.style.color = "#2A4A73"; // Azul corporativo
+
+    const tdRet = document.createElement("td");
+    tdRet.textContent = fix(f.retencion20);
+    tdRet.style.color = "#d32f2f"; // Rojo (deducción)
 
     const tdAnt = document.createElement("td");
     tdAnt.textContent = fix(f.anticipado);
-
-    const tdDscto = document.createElement("td");
-    tdDscto.textContent = fix(f.dscto);
-
-    const tdDep = document.createElement("td");
-    tdDep.textContent = fix(f.depositar);
+    tdAnt.style.fontWeight = "bold";
+    tdAnt.style.color = "#1F3A5F"; // Azul oscuro (Total)
 
     const tdAcc = document.createElement("td");
-    tdAcc.innerHTML = `<button type="button" onclick="delFactura(${i})">✕</button>`;
+    tdAcc.innerHTML = `<button class="btn ghost small" style="padding:4px 8px; color:red;" onclick="delFactura(${i})">✕</button>`;
 
-    tr.append(tdDias, tdTotal, tdAnt, tdDscto, tdDep, tdAcc);
+    tr.append(tdDias, tdSub, tdLiq, tdRet, tdAnt, tdAcc);
     tbody.appendChild(tr);
   });
 
-  $("t_total").textContent = fix(tTotal);
+  // Actualizar Totales del Footer
+  $("t_liquido").textContent = fix(tLiquido);
+  $("t_retencion").textContent = fix(tRet);
   $("t_anticipado").textContent = fix(tAnt);
-  $("t_dscto").textContent = fix(tDscto);
-  $("t_depositar").textContent = fix(tDep);
 }
 
 function delFactura(i){
@@ -94,5 +99,8 @@ function delFactura(i){
   render();
 }
 
+// Exponer globalmente para el onclick en HTML
 window.delFactura = delFactura;
+
+// Event Listeners
 $("btnAddFactura").addEventListener("click", addFactura);

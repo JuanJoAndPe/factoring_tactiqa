@@ -39,18 +39,6 @@
           <button class="btn primary full" type="button">Ver Estado</button>
         </div>
 
-        <div class="doc-box" role="button" tabindex="0" data-go="carga-facturas.html" 
-             data-roles="CLIENTE">
-          <div class="doc-head">
-            <div>
-              <div class="doc-title">Carga de Facturas</div>
-              <div class="doc-sub">Facturas, Retenciones y Guías</div>
-            </div>
-            <div class="pill">🧾</div>
-          </div>
-          <button class="btn primary full" type="button">Gestionar Carga</button>
-        </div>
-
         <div class="doc-box" role="button" tabindex="0" data-go="calificar-pagador.html" 
              data-roles="CLIENTE">
           <div class="doc-head">
@@ -86,6 +74,43 @@
           </div>
           <button class="btn primary full" type="button">Abrir</button>
         </div>
+
+        <div class="doc-box" role="button" tabindex="0" data-go="carga-facturas.html" 
+             data-roles="CLIENTE,COMERCIAL,ADMIN">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Carga de Facturas</div>
+              <div class="doc-sub">Facturas, Retenciones y Guías</div>
+            </div>
+            <div class="pill">🧾</div>
+          </div>
+          <button class="btn primary full" type="button">Gestionar Carga</button>
+        </div>
+
+        <div class="doc-box" role="button" tabindex="0" data-go="comercial-tareas.html"
+            data-roles="COMERCIAL,ADMIN">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Seguimiento Cargas</div>
+              <div class="doc-sub">Monitoreo estado de facturas</div>
+            </div>
+            <div class="pill">📌</div>
+          </div>
+          <button class="btn primary full" type="button">Ver Tareas</button>
+        </div>
+
+        <div class="doc-box" role="button" tabindex="0" data-go="factoring-simular.html"
+            data-roles="COMERCIAL,ADMIN">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Simulador</div>
+              <div class="doc-sub">Simular operaciones de factoring</div>
+            </div>
+            <div class="pill">🧮</div>
+          </div>
+          <button class="btn primary full" type="button">Simular</button>
+        </div>
+
 
         <div class="doc-box" role="button" tabindex="0" data-go="cartera.html"
              data-roles="CLIENTE,COMERCIAL,OPERATIVO,APROBADOR,ADMIN">

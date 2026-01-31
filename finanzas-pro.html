@@ -20,7 +20,7 @@
   <section class="card form-card">
 
     <div class="brand-row">
-      <img src="LOGO IF.png" alt="INTERNATIONAL FACTORING" onerror="this.style.display='none'"> 
+       <img src="LOGOIF.png" class="brand-logo-mini" alt="IF" onerror="this.style.display='none'"> 
       <div>
         <div class="brand-title">INTERNATIONAL FACTORING</div>
         <div class="brand-sub">Información Financiera de la Empresa</div>
@@ -33,12 +33,6 @@
 
     <div class="note">
       <b>Instrucciones:</b> Cargue los PDFs de la SUPERCIAS en la primera pestaña. El sistema detectará los códigos (ej: 101, 401) y llenará los valores automáticamente.
-    </div>
-
-    <div class="years">
-      <input type="number" id="year1" placeholder="Año 1 (ej. 2024)">
-      <input type="number" id="year2" placeholder="Año 2 (ej. 2023)">
-      <input type="number" id="year3" placeholder="Año 3 (ej. 2022)">
     </div>
 
     <div class="tabs">
@@ -99,6 +93,16 @@
             <h4>Operativo (Opcional)</h4>
             <div class="doc-box"><label>Facturas a negociar</label><input type="file" multiple></div>
             <div class="doc-box"><label>Est. Cuenta Pagador</label><input type="file"></div>
+            
+            <div class="doc-box" style="margin-top:15px; background-color:#e8f4fd; border:1px solid #bbdefb;">
+                <label style="display:flex; align-items:center; gap:12px; cursor:pointer; margin:0;">
+                    <input type="checkbox" id="checkTerminos" style="width:20px; height:20px; accent-color:#1F3A5F; cursor:pointer;">
+                    <span style="font-weight:600; color:#1F3A5F; font-size:14px;">
+                        Autorizo 
+                        <a href="#" target="_blank" style="color:#2A4A73; text-decoration:underline;">términos y condiciones y el tratamiento de datos</a>.
+                    </span>
+                </label>
+            </div>
         </div>
 
       </form>

@@ -56,8 +56,6 @@ if(pjText && pjCount){
 // CEREBRO: DETECCIÓN DE MODO (COMERCIAL vs PÚBLICO)
 // =========================================================
 
-// Verificar si hay sesión activa (Comercial/Admin)
-// Nota: getSession debe estar disponible desde auth.js si está importado, si no, leemos localStorage manual
 function getLocalSession() {
     try { return JSON.parse(localStorage.getItem('tqa_session')); } catch { return null; }
 }
@@ -69,9 +67,9 @@ const isLoggedStaff = session && (session.role === 'COMERCIAL' || session.role =
 safeOnClick("#btnVolverGeneral", (e) => {
     e.preventDefault();
     if (isLoggedStaff) {
-        window.location.href = "menu.html"; // Comercial vuelve al menú
+        window.location.href = "menu.html"; 
     } else {
-        window.location.href = "index.html"; // Público vuelve al login
+        window.location.href = "index.html"; 
     }
 });
 
@@ -81,17 +79,17 @@ safeOnClick("#btnVolverGeneral", (e) => {
 
 function makeId() { return `cli_${Date.now()}_${Math.floor(Math.random()*1000)}`; }
 
-// Registrar usuario en la "Base de Datos de Login" (tqa_local_users)
+// Registrar usuario en la "Base de Datos de Login"
 function registerLoginUser(cliente, tipo) {
     let email, password, nombre;
 
     if (tipo === 'PN') {
         email = cliente.data.pn_email;
-        password = cliente.data.pn_num_id; // Clave inicial = Cédula
+        password = cliente.data.pn_num_id; 
         nombre = `${cliente.data.pn_nombre} ${cliente.data.pn_apellido}`;
     } else {
         email = cliente.data.pj_contacto_email;
-        password = cliente.data.pj_ruc; // Clave inicial = RUC
+        password = cliente.data.pj_ruc; 
         nombre = cliente.data.pj_razon_social;
     }
 
@@ -105,7 +103,6 @@ function registerLoginUser(cliente, tipo) {
     };
 
     const currentUsers = JSON.parse(localStorage.getItem('tqa_local_users') || "[]");
-    // Evitar duplicados por email
     if(!currentUsers.find(u => u.email === email)) {
         currentUsers.push(newUser);
         localStorage.setItem('tqa_local_users', JSON.stringify(currentUsers));
@@ -113,7 +110,7 @@ function registerLoginUser(cliente, tipo) {
     return newUser;
 }
 
-// Registrar cliente en la "Lista Maestra de Clientes" (tactiqa_clientes)
+// Registrar en Lista de Clientes
 function registerInClientList(cliente, tipo) {
     let nombreDisplay, rucDisplay;
     if (tipo === 'PN') {
@@ -139,7 +136,7 @@ function registerInClientList(cliente, tipo) {
 }
 
 // =========================
-// MANEJO DEL SUBMIT (UNIFICADO)
+// MANEJO DEL SUBMIT (CORREGIDO)
 // =========================
 
 function attachSubmit(formId, tipo){
@@ -151,7 +148,6 @@ function attachSubmit(formId, tipo){
     if(!form.reportValidity()) return;
 
     const data = Object.fromEntries(new FormData(form).entries());
-    // Limpieza de espacios
     Object.keys(data).forEach(k => { if(typeof data[k] === "string") data[k] = data[k].trim(); });
 
     const cliente = {
@@ -161,23 +157,20 @@ function attachSubmit(formId, tipo){
       data
     };
 
-    // 1. Guardar en BD local y Crear Usuario
+    // 1. Guardar cliente
     const newUserObj = registerLoginUser(cliente, tipo);
     registerInClientList(cliente, tipo);
     
-    // Guardar borrador (legacy)
     localStorage.setItem("tqa_cliente_draft", JSON.stringify(cliente));
 
-    // 2. LÓGICA DE REDIRECCIÓN A DOCUMENTOS
-    alert("✅ Registro exitoso. A continuación podrá cargar su documentación financiera.");
+    alert("✅ Registro exitoso. Procediendo a carga de información financiera.");
 
+    // 2. REDIRECCIÓN INTELIGENTE
     if (isLoggedStaff) {
-        // CASO A: Es el Comercial registrando a otro
-        // Vamos a finanzas pasando el ID del cliente en la URL
-        window.location.href = `finanzas-cliente.html?clientId=${cliente.id}`;
+        // CASO COMERCIAL: Redirige a la herramienta avanzada (Finanzas Pro)
+        window.location.href = `finanzas-pro.html?clientId=${cliente.id}`;
     } else {
-        // CASO B: Es el Cliente registrándose solo
-        // ACCIÓN CLAVE: Auto-Login inmediato
+        // CASO CLIENTE (AUTO-REGISTRO): Auto-login y carga simple
         const newSession = {
             email: newUserObj.email,
             role: "CLIENTE",
@@ -186,8 +179,6 @@ function attachSubmit(formId, tipo){
             loginTime: Date.now()
         };
         localStorage.setItem('tqa_session', JSON.stringify(newSession));
-
-        // Redirigir directamente (ya logueado)
         window.location.href = "finanzas-cliente.html";
     }
   });

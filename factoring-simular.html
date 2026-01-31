@@ -14,10 +14,10 @@
     <section class="card form-card">
 
       <div class="brand-row">
-        <img src="logo.jpg" class="brand-logo-mini" alt="TACTIQA" />
+        <img src="LOGOIF.png" class="brand-logo-mini" alt="TACTIQA" onerror="this.style.display='none'" />
         <div class="brand-mini-texts">
-          <div class="brand-mini-text">TACTIQA</div>
-          <div class="brand-mini-sub">Simulación (solo cálculo)</div>
+          <div class="brand-mini-text">INTERNATIONAL FACTORING</div>
+          <div class="brand-mini-sub">Simulación (Cálculo de Anticipo)</div>
         </div>
       </div>
 
@@ -25,23 +25,23 @@
         <h2>Simulación de Factoring</h2>
       </div>
 
-      <div class="note">Una operación puede contener múltiples facturas.</div>
+      <div class="note">Ingrese los valores para calcular el valor líquido y el anticipo (80%).</div>
 
       <div class="grid two pad">
         <div class="col">
-          <label>Días factoring</label>
-          <input id="dias" type="number" min="0" step="1" />
+          <label>Días factoring (Ref.)</label>
+          <input id="dias" type="number" min="0" step="1" placeholder="Ej: 30" />
 
-          <label>Retención fuente</label>
-          <input id="retFte" inputmode="decimal" />
+          <label>Retención Fuente</label>
+          <input id="retFte" inputmode="decimal" placeholder="0.00" />
         </div>
 
         <div class="col">
-          <label>Subtotal</label>
-          <input id="subtotal" inputmode="decimal" />
+          <label>Subtotal Factura</label>
+          <input id="subtotal" inputmode="decimal" placeholder="0.00" />
 
           <label>Retención IVA</label>
-          <input id="retIva" inputmode="decimal" />
+          <input id="retIva" inputmode="decimal" placeholder="0.00" />
         </div>
       </div>
 
@@ -49,21 +49,15 @@
         <table class="fin-table" id="tablaFacturas">
 
           <colgroup>
-            <col style="width: 190px;"> <!-- Días / TOTAL OPERACIÓN -->
-            <col style="width: 170px;"> <!-- Total -->
-            <col style="width: 200px;"> <!-- Valor Anticipado -->
-            <col style="width: 170px;"> <!-- Descuento -->
-            <col style="width: 200px;"> <!-- Valor a Depositar -->
-            <col style="width: 56px;">  <!-- Acción -->
-          </colgroup>
+            <col style="width: 60px;">  <col style="width: 140px;"> <col style="width: 140px;"> <col style="width: 140px;"> <col style="width: 160px;"> <col style="width: 50px;">  </colgroup>
 
           <thead>
             <tr>
               <th>Días</th>
-              <th>Total</th>
+              <th>Subtotal</th>
+              <th>Valor Líquido</th>
+              <th>Retención (20%)</th>
               <th>Valor Anticipado</th>
-              <th>Descuento</th>
-              <th>Valor a Depositar</th>
               <th></th>
             </tr>
           </thead>
@@ -72,11 +66,10 @@
 
           <tfoot>
             <tr class="row-grand">
-              <td>TOTAL OPERACIÓN</td>
-              <td id="t_total">0.00</td>
+              <td colspan="2">TOTALES</td>
+              <td id="t_liquido">0.00</td>
+              <td id="t_retencion">0.00</td>
               <td id="t_anticipado">0.00</td>
-              <td id="t_dscto">0.00</td>
-              <td id="t_depositar">0.00</td>
               <td></td>
             </tr>
           </tfoot>
@@ -84,8 +77,8 @@
       </div>
 
       <div class="actions">
-        <button class="btn primary" type="button" id="btnAddFactura">Calcular simulación</button>
-        <a class="btn ghost" href="menu.html">Volver</a>
+        <button class="btn primary" type="button" id="btnAddFactura">Agregar a Simulación</button>
+        <button class="btn ghost" onclick="window.location.href='menu.html'">Volver</button>
       </div>
 
     </section>
