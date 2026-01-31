@@ -127,7 +127,7 @@
                         <div class="file-drop-zone">
                             <span class="upload-icon">📄</span>
                             <div class="upload-text">Seleccionar archivo...</div>
-                            <input type="file" id="fileRuc" accept=".pdf,.jpg,.png" onchange="updateFileStatus(this, 'statusRuc')">
+                            <input type="file" id="fileRuc" accept=".pdf" onchange="updateFileStatus(this, 'statusRuc')" required>
                             <div id="statusRuc" class="file-status">Sin archivo</div>
                         </div>
                     </div>
@@ -204,9 +204,6 @@
   </div>
 
   <script>
-    // ==========================================
-    // INICIALIZACIÓN
-    // ==========================================
     document.addEventListener('DOMContentLoaded', () => {
         renderizarTabla();
     });
@@ -274,12 +271,14 @@
         const ruc = rucInput.value.trim();
         const nombre = nombreInput.value.trim();
 
-        if (ruc.length !== 13) { alert("⚠️ El RUC debe tener 13 dígitos."); return; }
-        if (nombre === "") { alert("⚠️ Ingrese la Razón Social."); return; }
+        if (ruc.length !== 13) { alert("El RUC debe tener 13 dígitos."); return; }
+        if (nombre === "") { alert("Ingrese la Razón Social."); return; }
+        if (fileRuc != "") { alert("Debe adjuntar certificado de RUC")}
+        if (fileCXC != "") { alert("Debe adjuntar historial interno de CXC")}
 
         let db = JSON.parse(localStorage.getItem('db_pagadores')) || [];
 
-        if (db.some(p => p.ruc === ruc)) { alert("⚠️ Este pagador ya existe en el historial."); return; }
+        if (db.some(p => p.ruc === ruc)) { alert("Este pagador ya existe en el historial."); return; }
 
         const nombreDocRuc = fileRuc.files[0] ? fileRuc.files[0].name : null;
         const nombreDocCXC = fileCXC.files[0] ? fileCXC.files[0].name : null;

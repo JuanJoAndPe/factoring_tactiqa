@@ -7,7 +7,7 @@
 const PAGE_ACCESS = {
     CLIENTE: ['cliente-dashboard.html', 'carga-facturas.html', 'cartera.html', 'calificar-pagador.html', 'finanzas-cliente.html', 'menu.html', 'simulador.html'],
     COMERCIAL: ['nuevo-cliente.html', 'clientes.html', 'cartera.html', 'comercial-tareas.html', 'finanzas-pro.html', 'menu.html', 'carga-facturas.html', 'factoring-simular.html'],   
-    OPERATIVO: ['clientes.html', 'cartera.html', 'finanzas-pro.html', 'informe_riesgo.html', 'menu.html', 'carga-facturas.html'],
+    OPERATIVO: ['cliente-dashboard.html','clientes.html', 'cartera.html', 'finanzas-pro.html', 'informe_riesgo.html', 'menu.html'],
     APROBADOR: ['cartera.html', 'informe_riesgo.html', 'calificar-pagador.html', 'clientes.html', 'menu.html'],
     ADMIN: ['*'] 
 };

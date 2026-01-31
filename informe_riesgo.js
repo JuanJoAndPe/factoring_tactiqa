@@ -143,22 +143,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadFinancialKPIs() {
-        const kpiJSON = localStorage.getItem('tqa_financial_kpis');
-        if (!kpiJSON) return;
-        try {
-            const kpis = JSON.parse(kpiJSON);
-            const values = document.querySelectorAll('.kpi-card .value');
-            if(values.length >= 6) {
-                values[0].textContent = kpis.liquidez;
-                values[1].textContent = kpis.pruebaAcida;
-                values[2].textContent = kpis.margenNeto;
-                values[3].textContent = kpis.roa;
-                values[4].textContent = kpis.roe;
-                values[5].textContent = kpis.endeudamiento;
-                values[6].textContent = kpis.ebitda;
-            }
-        } catch (e) { console.error(e); }
+    const kpiJSON = localStorage.getItem('tqa_financial_kpis');
+    // ... lógica existente de parseo ...
+
+    // NUEVA LÓGICA: DETECTAR SI FALTAN DATOS
+    let missingData = false;
+    if (!kpiJSON) {
+        missingData = true;
+    } else {
+        const kpis = JSON.parse(kpiJSON);
+        // Si liquidez es 0.00 o undefined, asumimos que falta carga
+        if (kpis.liquidez === "0.00" || !kpis.liquidez) missingData = true;
     }
+
+    if (missingData) {
+        // Inyectar alerta y botón en la sección de Índices Financieros
+        const kpiGrid = document.querySelector('.kpi-grid');
+        if(kpiGrid) {
+            kpiGrid.innerHTML = `
+                <div style="grid-column: 1 / -1; background: #fff3cd; color: #856404; padding: 15px; border-radius: 6px; border: 1px solid #ffeeba; text-align: center;">
+                    <strong> No hay datos financieros cargados</strong><br>
+                    Los índices están en 0. Debe procesar los balances para generar el informe.
+                    <br><br>
+                    <button class="btn primary small" onclick="window.location.href='finanzas-pro.html'">
+                        <i class="fa-solid fa-calculator"></i> Cargar Balances y Calcular
+                    </button>
+                </div>
+            `;
+        }
+    } else {
+        // ... (Tu código existente que llena los spans .value) ...
+    }
+}
 
     function loadClientData() {
         const draftJSON = localStorage.getItem("tqa_cliente_draft");

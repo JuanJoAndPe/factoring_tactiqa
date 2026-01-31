@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TACTIQA | Cartera de Pagadores</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    /* Estilos del checklist en el modal */
+    .doc-check-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 12px; border: 1px solid #eef2f8; margin-bottom: 8px;
+        border-radius: 6px; background: #fafafa;
+    }
+    .doc-check-item:hover { background: #fff; border-color: var(--accent); }
+    .doc-label { font-size: 13px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 10px; }
+  </style>
+</head>
+
+<body>
+<div class="bg"></div>
+
+<main class="view active">
+  <section class="card form-card">
+
+    <div class="brand-row">
+       <img src="LOGOIF.png" class="brand-logo-mini" alt="IF" onerror="this.style.display='none'"> 
+      <div>
+        <div class="brand-title">INTERNATIONAL FACTORING</div>
+        <div class="brand-sub">Cartera de Pagadores - Vista Operativa</div>
+      </div>
+    </div>
+
+    <div class="titlebar" style="display:flex; justify-content:space-between; align-items:center;">
+      <h2>Gestión de Pagadores</h2>
+      <div>
+          <button class="btn ghost small" onclick="manualSync()" style="color:#fff; border-color:rgba(255,255,255,0.4);">
+              <i class="fa-solid fa-sync"></i> Sincronizar
+          </button>
+          <span class="badge" style="background:rgba(255,255,255,0.2); color:#fff; border:none; margin-left:10px;">
+              <i class="fa-solid fa-building"></i> Total: <span id="totalPayersCount">0</span>
+          </span>
+      </div>
+    </div>
+
+    <div class="pad" style="margin-top: 20px;">
+        
+        <div class="filter-bar" style="display: flex; gap: 15px; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #eef2f8;">
+            <input type="text" id="searchPayer" class="filter-input" placeholder="🔍 Buscar pagador o RUC..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:4px;">
+            <select id="filterStatus" class="filter-input" style="width: 200px; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                <option value="ALL">Todos los Estados</option>
+                <option value="POR_REVISAR">⚠️ Pendiente Revisión</option>
+                <option value="ENVIADO_APROBADOR">✈️ En Aprobación</option>
+                <option value="CALIFICADO">✅ Calificado</option>
+            </select>
+        </div>
+
+        <div class="table-wrap">
+            <table class="fin-table" id="payersTable">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Pagador</th>
+                        <th style="width: 20%;">Cliente Asociado</th>
+                        <th style="width: 15%; text-align:center;">Calif.</th>
+                        <th style="width: 20%;">Estado Doc.</th>
+                        <th style="width: 15%; text-align: center;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="payersTableBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn ghost" onclick="window.location.href='menu.html'">
+            <i class="fa-solid fa-arrow-left icon"></i> Volver al Menú
+        </button>
+    </div>
+
+  </section>
+</main>
+
+<div id="reviewModal" class="modal-overlay" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-box" style="background: #fff; width: 550px; max-width: 95%; border-radius: 8px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        
+        <div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="color: var(--primary); margin:0;" id="modalTitle">Revisión Documental</h3>
+            <p style="font-size:12px; color:#666; margin-top:5px;">Verifique los requisitos para enviar a aprobación.</p>
+        </div>
+
+        <div style="background: #f0f4f8; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+            <div style="font-size: 11px; color: #666; text-transform: uppercase;">Detalle de Solicitud</div>
+            <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                <strong style="color: var(--primary);">Solicitado: <span id="lblCupo">$0.00</span></strong>
+                <span class="badge warn" id="lblStatus">Pendiente</span>
+            </div>
+        </div>
+
+        <label style="margin-bottom: 8px; display:block;">Lista de Verificación:</label>
+        <div id="docChecklist">
+            <div class="doc-check-item">
+                <div class="doc-label"><i class="fa-solid fa-file-pdf"></i> Constitución / Nombramiento</div>
+                <input type="checkbox" class="doc-check" style="width: 20px; height: 20px;">
+            </div>
+            <div class="doc-check-item">
+                <div class="doc-label"><i class="fa-solid fa-id-card"></i> RUC Actualizado</div>
+                <input type="checkbox" class="doc-check" style="width: 20px; height: 20px;">
+            </div>
+            <div class="doc-check-item">
+                <div class="doc-label"><i class="fa-solid fa-chart-line"></i> Buró de Crédito</div>
+                <input type="checkbox" class="doc-check" style="width: 20px; height: 20px;">
+            </div>
+        </div>
+
+        <label style="margin-top: 15px;">Observaciones:</label>
+        <textarea id="txtObservation" placeholder="Indique novedades encontradas..." style="min-height: 60px; width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+
+        <div class="actions" style="padding-bottom: 0; border: none; margin-top: 15px; display:flex; gap:10px; justify-content: flex-end;">
+            <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+            <button class="btn primary" id="btnSendReview" onclick="sendToApprover()">
+                <i class="fa-solid fa-paper-plane"></i> Enviar a Aprobador
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="pagadores.js"></script>
+</body>
+</html>

@@ -1,196 +1,207 @@
-(function() {
-    "use strict";
+// DATOS MOCK: Simulamos operaciones vivas
+const MOCK_PORTFOLIO = [
+    {
+        id: "OP-2026-001",
+        client: "Importadora del Pacífico S.A.",
+        payer: "SUPERMERCADOS LA FAVORITA",
+        dueDate: "2026-02-15",
+        amount: 25000.00,
+        balance: 25000.00,
+        status: "VIGENTE"
+    },
+    {
+        id: "OP-2026-002",
+        client: "Servicios Tecnológicos Globales",
+        payer: "CONSTRUCTORA HIDALGO",
+        dueDate: "2026-01-28",
+        amount: 12500.00,
+        balance: 12500.00,
+        status: "VENCIDO"
+    },
+    {
+        id: "OP-2025-889",
+        client: "Constructora Andes",
+        payer: "GOBIERNO PROVINCIAL GUAYAS",
+        dueDate: "2025-12-15",
+        amount: 50000.00,
+        balance: 50000.00,
+        status: "MORA"
+    },
+    {
+        id: "OP-2026-003",
+        client: "Importadora del Pacífico S.A.",
+        payer: "TIA S.A.",
+        dueDate: "2026-02-28", 
+        amount: 15000.00,
+        balance: 5000.00,
+        status: "VIGENTE"
+    },
+    {
+        id: "OP-2025-900",
+        client: "Exportadora Bananera Noboa",
+        payer: "WALMART INC.",
+        dueDate: "2026-01-10", 
+        amount: 100000.00,
+        balance: 0.00, 
+        status: "PAGADO"
+    }
+];
 
-    // 1. Obtener sesión
-    const session = typeof getSession === 'function' ? getSession() : null;
-    if (!session) return; 
+// Variable global para mantener los datos filtrados según el rol
+let filteredData = [];
 
-    const userRole = session.role;
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Cargar datos brutos
+    let rawData = JSON.parse(localStorage.getItem('tqa_cartera_activa'));
+    if (!rawData || rawData.length === 0) {
+        rawData = MOCK_PORTFOLIO;
+        localStorage.setItem('tqa_cartera_activa', JSON.stringify(rawData));
+    }
+
+    // 2. APLICAR FILTRO DE SEGURIDAD (SEGÚN ROL)
+    filteredData = applySecurityFilter(rawData);
+
+    // 3. Renderizar lo que el usuario TIENE PERMISO de ver
+    renderPortfolio(filteredData);
+    calculateKPIs(filteredData); // Los KPIs de arriba también se ajustan
+
+    // 4. Configurar búsqueda sobre los datos ya filtrados
+    document.getElementById('searchOp').addEventListener('keyup', (e) => filterLocalView(e.target.value));
+    document.getElementById('filterState').addEventListener('change', () => filterLocalView(document.getElementById('searchOp').value));
+});
+
+// === LÓGICA DE SEGURIDAD ===
+function applySecurityFilter(allData) {
+    const session = JSON.parse(localStorage.getItem('tqa_session'));
     
-    // DEFINICIÓN DE PERMISOS
-    const esCliente = userRole === 'CLIENTE';
-    const esStaff = !esCliente; // Comercial, Operativo, Aprobador, Admin
-    const esAprobador = ['ADMIN', 'APROBADOR'].includes(userRole);
-
-    console.log(`Cargando Cartera. Rol: ${userRole}. Es Staff: ${esStaff}. Puede Aprobar: ${esAprobador}`);
-
-    // ========= VARIABLES =========
-    const STORAGE_KEY = "db_cartera_lotes";
-    let memoryLotes = []; 
-
-    // ========= DOM ELEMENTS =========
-    const tbody = document.getElementById("tbodyCartera");
-    const emptyMsg = document.getElementById("emptyMsg");
-    const thAcciones = document.getElementById("thAcciones");
-    const thCliente = document.getElementById("thCliente");
-    const inputBusqueda = document.getElementById("inputBusqueda");
-
-    // ========= HELPERS =========
-    const formatMoney = v => Number(v || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
-    const formatDate = iso => {
-      if (!iso) return "--";
-      const d = new Date(iso);
-      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth() + 1).padStart(2,'0')}/${d.getFullYear()}`;
-    };
-
-    // ========= CARGA DE DATOS =========
-    function loadData() {
-        memoryLotes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        
-        // Si es CLIENTE, filtramos para que solo vea SUS lotes (simulado por ahora, 
-        // en producción filtraríamos por session.id)
-        /* if(esCliente) {
-            memoryLotes = memoryLotes.filter(l => l.usuarioId === session.id);
-        }
-        */
-        
-        renderTable(memoryLotes);
+    // Si no hay sesión o es Admin/Operativo/Comercial, ve todo
+    if (!session || ['ADMIN', 'OPERATIVO', 'COMERCIAL', 'APROBADOR'].includes(session.role)) {
+        return allData;
     }
 
-    // ========= RENDERIZADO =========
-    function renderTable(listaDatos) {
-        // 1. Gestión de Columnas
-        if (thCliente) thCliente.style.display = esStaff ? '' : 'none'; // Comercial ve Cliente
-        if (thAcciones) thAcciones.style.display = esAprobador ? '' : 'none'; // Solo Aprobador ve Acciones
-
-        tbody.innerHTML = "";
-
-        if (listaDatos.length === 0) {
-            if(emptyMsg) emptyMsg.style.display = 'block';
-            return;
-        }
-        if(emptyMsg) emptyMsg.style.display = 'none';
-
-        // 2. Generar Filas
-        [...listaDatos].reverse().forEach((lote) => {
-            const originalIndex = memoryLotes.findIndex(item => item.id === lote.id);
-            const tr = document.createElement("tr");
-            
-            // Badge Estado
-            let badgeClass = "badge"; 
-            if(lote.estado === "PENDIENTE") badgeClass = "badge warn";
-            else if(lote.estado === "APROBADO") badgeClass = "badge ok"; 
-            else if(lote.estado === "RECHAZADO") badgeClass = "badge bad"; 
-
-            // A. Celda Cliente (Solo para Staff/Comercial)
-            let celdaClienteHTML = "";
-            if (esStaff) {
-                // Si el lote no tiene nombre guardado, mostramos uno genérico o el del pagador
-                const nombreCli = lote.usuarioNombre || "Cliente Desconocido";
-                celdaClienteHTML = `<td style="font-weight:600; color:var(--primary);">${nombreCli}</td>`;
-            }
-
-            // B. Celda Acción (Solo para Aprobador)
-            let celdaAccionHTML = "";
-            if (esAprobador) {
-                const disabledAttr = (lote.estado === "APROBADO" || lote.estado === "RECHAZADO") ? "disabled" : "";
-                const styleSelect = disabledAttr ? "background:#f9f9f9; color:#999;" : "background:#fff; color:#333;";
-
-                celdaAccionHTML = `
-                    <td>
-                        <select onchange="cambiarEstado(${originalIndex}, this.value)" ${disabledAttr} 
-                                style="padding:4px; border-radius:4px; border:1px solid #ccc; font-size:12px; width:100%; ${styleSelect}">
-                            <option value="" disabled selected>--</option>
-                            <option value="APROBADO">✅ Aprobar</option>
-                            <option value="RECHAZADO">❌ Rechazar</option>
-                            <option value="PENDIENTE">⏳ Pendiente</option>
-                        </select>
-                    </td>
-                `;
-            }
-
-            tr.innerHTML = `
-                <td style="font-size:12px;">${formatDate(lote.fecha)}</td>
-                ${celdaClienteHTML}
-                <td style="font-family:monospace; font-weight:bold;">${lote.id}</td>
-                <td>${lote.pagador}</td>
-                <td style="text-align:right; font-weight:bold;">${formatMoney(lote.total)}</td>
-                <td style="text-align:center;"><span class="${badgeClass}">${lote.estado}</span></td>
-                ${celdaAccionHTML}
-            `;
-            tbody.appendChild(tr);
+    // Si es CLIENTE, solo ve sus propias operaciones
+    if (session.role === 'CLIENTE') {
+        // Filtramos donde el nombre del cliente coincida (parcialmente para evitar errores de espacios)
+        const myName = session.nombre.toLowerCase();
+        
+        return allData.filter(item => {
+            // Compara el campo 'client' de la operación con el nombre del usuario logueado
+            return item.client.toLowerCase().includes(myName);
         });
     }
 
-    // ========= FILTRADO =========
-    if(inputBusqueda){
-        inputBusqueda.addEventListener("keyup", (e) => {
-            const term = e.target.value.toLowerCase();
-            const filtrados = memoryLotes.filter(lote => 
-                (lote.pagador && lote.pagador.toLowerCase().includes(term)) ||
-                (lote.id && lote.id.toLowerCase().includes(term)) ||
-                (lote.estado && lote.estado.toLowerCase().includes(term)) ||
-                (lote.usuarioNombre && lote.usuarioNombre.toLowerCase().includes(term))
-            );
-            renderTable(filtrados);
-        });
+    return []; // Por seguridad, si el rol no existe, no retorna nada
+}
+
+// === FILTRO VISUAL (Buscador) ===
+function filterLocalView(searchTerm) {
+    const stateFilter = document.getElementById('filterState').value;
+    searchTerm = searchTerm.toLowerCase();
+
+    // Filtramos sobre 'filteredData', no sobre 'localStorage' directo, para mantener la seguridad
+    const visibleData = filteredData.filter(item => {
+        const matchesText = 
+            item.client.toLowerCase().includes(searchTerm) || 
+            item.payer.toLowerCase().includes(searchTerm) ||
+            item.id.toLowerCase().includes(searchTerm);
+        
+        const matchesState = stateFilter === 'ALL' || 
+                             (stateFilter === 'VIGENTE' && item.status === 'VIGENTE') ||
+                             (stateFilter === 'VENCIDO' && (item.status === 'VENCIDO' || item.status === 'MORA')) ||
+                             (stateFilter === 'PAGADO' && item.status === 'PAGADO');
+
+        return matchesText && matchesState;
+    });
+
+    renderPortfolio(visibleData);
+}
+
+function renderPortfolio(data) {
+    const tbody = document.getElementById('portfolioBody');
+    tbody.innerHTML = '';
+    const session = JSON.parse(localStorage.getItem('tqa_session'));
+    const isClient = session && session.role === 'CLIENTE';
+
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:#999;">No hay operaciones visibles para su perfil.</td></tr>';
+        return;
     }
 
-    // ========= CAMBIAR ESTADO =========
-    window.cambiarEstado = function(index, nuevoEstado) {
-        if(!esAprobador) return;
+    const today = new Date();
 
-        if(!confirm(`¿Confirma cambiar el estado a ${nuevoEstado}?`)) {
-            loadData(); 
-            return;
-        }
-
-        if(memoryLotes[index]) {
-            memoryLotes[index].estado = nuevoEstado;
-            memoryLotes[index].aprobadoPor = session.name;
-            memoryLotes[index].fechaAprobacion = new Date().toISOString();
-        }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryLotes));
+    data.forEach(op => {
+        const due = new Date(op.dueDate);
+        const diffTime = due - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
         
-        // Refrescar manteniendo filtro
-        const term = inputBusqueda.value.toLowerCase();
-        if(term && term.length > 0) {
-             inputBusqueda.dispatchEvent(new Event('keyup'));
+        let statusHtml = '';
+
+        if (op.balance === 0) {
+            statusHtml = '<span class="badge ok">PAGADO</span>';
+        } else if (diffDays < 0) {
+            const daysOverdue = Math.abs(diffDays);
+            statusHtml = daysOverdue > 30 
+                ? `<span class="badge bad">MORA +30 (${daysOverdue}d)</span>`
+                : `<span class="badge warn">VENCIDO (${daysOverdue}d)</span>`;
         } else {
-            renderTable(memoryLotes);
+            statusHtml = `<span class="badge" style="background:#e3f2fd; color:#1565c0;">VIGENTE (${diffDays}d)</span>`;
         }
-    };
 
-    // ========= EXPORTAR EXCEL =========
-    window.exportarExcel = function() {
-        if(memoryLotes.length === 0) { alert("Sin datos."); return; }
+        // Si es cliente, ocultamos el botón de gestión (teléfono)
+        const actionBtn = isClient 
+            ? `<span style="color:#ccc; font-size:11px;">-</span>`
+            : `<button class="btn ghost small" onclick="openGestion('${op.id}')" title="Registrar Gestión"><i class="fa-solid fa-phone"></i></button>`;
 
-        let csvContent = "data:text/csv;charset=utf-8,";
-        // Encabezados dinámicos según rol
-        let header = "Fecha,ID Lote,Pagador,Total,Estado";
-        if(esStaff) header += ",Cliente Solicitante";
-        if(esAprobador) header += ",Aprobado Por";
-        csvContent += header + "\n";
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="font-weight:bold; font-size:12px;">${op.id}</td>
+            <td>${op.client}</td>
+            <td>${op.payer}</td>
+            <td>
+                <div>${op.dueDate}</div>
+                <div style="font-size:10px; color:#999;">${diffDays > 0 ? 'Faltan ' + diffDays + ' días' : 'Venció hace ' + Math.abs(diffDays)}</div>
+            </td>
+            <td style="text-align:right; font-family:'Consolas', monospace; font-weight:700;">$${op.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+            <td style="text-align:center;">${statusHtml}</td>
+            <td style="text-align:center;">${actionBtn}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
 
-        // Obtener datos visibles (filtrados)
-        const term = inputBusqueda.value.toLowerCase();
-        const dataToExport = term 
-            ? memoryLotes.filter(l => 
-                (l.pagador && l.pagador.toLowerCase().includes(term)) || 
-                (l.id && l.id.toLowerCase().includes(term)))
-            : memoryLotes;
+function calculateKPIs(data) {
+    let totalVigente = 0;
+    let totalPorVencer = 0;
+    let totalVencido1 = 0; 
+    let totalVencido2 = 0; 
 
-        dataToExport.forEach(row => {
-            const fecha = formatDate(row.fecha);
-            const total = row.total.toFixed(2);
-            const pagador = `"${(row.pagador || '').replace(/"/g, '""')}"`;
-            
-            let line = `${fecha},${row.id},${pagador},${total},${row.estado}`;
-            if(esStaff) line += `,${row.usuarioNombre || 'N/A'}`;
-            if(esAprobador) line += `,${row.aprobadoPor || '-'}`;
-            
-            csvContent += line + "\n";
-        });
+    const today = new Date();
 
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `cartera_${new Date().toISOString().slice(0,10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+    data.forEach(op => {
+        if (op.balance > 0) {
+            const due = new Date(op.dueDate);
+            const diffTime = due - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    // Inicio
-    loadData();
-})();
+            totalVigente += op.balance;
+
+            if (diffDays >= 0 && diffDays <= 15) {
+                totalPorVencer += op.balance;
+            } else if (diffDays < 0) {
+                const overdue = Math.abs(diffDays);
+                if (overdue <= 30) totalVencido1 += op.balance;
+                else totalVencido2 += op.balance;
+            }
+        }
+    });
+
+    document.getElementById('kpiTotal').textContent = "$" + totalVigente.toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('kpiCurrent').textContent = "$" + totalPorVencer.toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('kpiOverdue1').textContent = "$" + totalVencido1.toLocaleString('en-US', {minimumFractionDigits: 2});
+    document.getElementById('kpiOverdue2').textContent = "$" + totalVencido2.toLocaleString('en-US', {minimumFractionDigits: 2});
+}
+
+window.openGestion = (id) => {
+    document.getElementById('modalOpId').textContent = id;
+    document.getElementById('gestionModal').style.display = 'flex';
+};

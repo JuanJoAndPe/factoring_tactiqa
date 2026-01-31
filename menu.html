@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>INTERNATIONAL FACTORING | Menú principal</title>
+  <title>TACTIQA | Menú Principal</title>
   <link rel="stylesheet" href="styles.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 
 <body>
@@ -14,65 +15,65 @@
     <section class="card form-card">
 
       <div class="brand-row">
-        <img src="LOGOIF.png" class="brand-logo-mini" alt="INTERNATIONAL FACTORING" onerror="this.style.display='none'"/>
+        <img src="LOGOIF.png" class="brand-logo-mini" alt="IF" onerror="this.style.display='none'"/>
         <div class="brand-mini-texts">
           <div class="brand-mini-text">INTERNATIONAL FACTORING</div>
-          <div class="brand-mini-sub" id="userNameDisplay">Panel principal</div>
+          <div class="brand-mini-sub" id="userNameDisplay">Panel de Control</div>
         </div>
       </div>
 
       <div class="titlebar">
-        <h2>¿Qué deseas hacer?</h2>
+        <h2>Menú de Accesos</h2>
       </div>
 
       <div class="docs-grid">
-
-        <div class="doc-box" role="button" tabindex="0" data-go="cliente-dashboard.html" 
-             data-roles="CLIENTE">
-          <div class="doc-head">
-            <div>
-              <div class="doc-title">Mi Dashboard</div>
-              <div class="doc-sub">Resumen de mis operaciones</div>
-            </div>
-            <div class="pill">🏠</div>
-          </div>
-          <button class="btn primary full" type="button">Ver Estado</button>
-        </div>
-
-        <div class="doc-box" role="button" tabindex="0" data-go="calificar-pagador.html" 
-             data-roles="CLIENTE">
-          <div class="doc-head">
-            <div>
-              <div class="doc-title">Calificar Pagador</div>
-              <div class="doc-sub">Consultar cupo y riesgo</div>
-            </div>
-            <div class="pill">🏢</div>
-          </div>
-          <button class="btn primary full" type="button">Consultar</button>
-        </div>
 
         <div class="doc-box" role="button" tabindex="0" data-go="nuevo-cliente.html" 
              data-roles="COMERCIAL,ADMIN">
           <div class="doc-head">
             <div>
-              <div class="doc-title">Crear nuevo cliente</div>
-              <div class="doc-sub">Registrar prospecto o cliente</div>
+              <div class="doc-title">Nuevo Cliente</div>
+              <div class="doc-sub">Registrar prospecto</div>
             </div>
             <div class="pill">👤</div>
           </div>
           <button class="btn primary full" type="button">Ingresar</button>
         </div>
 
+        <div class="doc-box" role="button" tabindex="0" data-go="operativo-tareas.html" 
+            data-roles="OPERATIVO,ADMIN">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Mesa Operativa</div>
+              <div class="doc-sub">Bandeja de Tareas</div>
+            </div>
+            <div class="pill">⚡</div>
+          </div>
+          <button class="btn success full" type="button" style="background-color: #2A4A73; border-color: #2A4A73;">Gestionar (Inbox)</button>
+        </div>
+
         <div class="doc-box" role="button" tabindex="0" data-go="clientes.html"
              data-roles="COMERCIAL,OPERATIVO,APROBADOR,ADMIN">
           <div class="doc-head">
             <div>
-              <div class="doc-title">Clientes</div>
-              <div class="doc-sub">Directorio y gestión</div>
+              <div class="doc-title">Directorio Clientes</div>
+              <div class="doc-sub">Base de datos general</div>
             </div>
             <div class="pill">👥</div>
           </div>
-          <button class="btn primary full" type="button">Abrir</button>
+          <button class="btn primary full" type="button">Consultar</button>
+        </div>
+
+        <div class="doc-box" role="button" tabindex="0" data-go="cliente-dashboard.html" 
+             data-roles="CLIENTE">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Mi Dashboard</div>
+              <div class="doc-sub">Resumen de cuenta</div>
+            </div>
+            <div class="pill">🏠</div>
+          </div>
+          <button class="btn primary full" type="button">Ver Estado</button>
         </div>
 
         <div class="doc-box" role="button" tabindex="0" data-go="carga-facturas.html" 
@@ -80,56 +81,54 @@
           <div class="doc-head">
             <div>
               <div class="doc-title">Carga de Facturas</div>
-              <div class="doc-sub">Facturas, Retenciones y Guías</div>
+              <div class="doc-sub">Subir XML/PDFs</div>
             </div>
             <div class="pill">🧾</div>
           </div>
-          <button class="btn primary full" type="button">Gestionar Carga</button>
+          <button class="btn primary full" type="button">Nueva Carga</button>
         </div>
 
         <div class="doc-box" role="button" tabindex="0" data-go="comercial-tareas.html"
             data-roles="COMERCIAL,ADMIN">
           <div class="doc-head">
             <div>
-              <div class="doc-title">Seguimiento Cargas</div>
-              <div class="doc-sub">Monitoreo estado de facturas</div>
+              <div class="doc-title">Seguimiento</div>
+              <div class="doc-sub">Estado de cargas</div>
             </div>
             <div class="pill">📌</div>
           </div>
-          <button class="btn primary full" type="button">Ver Tareas</button>
+          <button class="btn ghost full" type="button">Ver Tareas</button>
         </div>
 
-        <div class="doc-box" role="button" tabindex="0" data-go="factoring-simular.html"
-            data-roles="COMERCIAL,ADMIN">
+        <div class="doc-box" role="button" tabindex="0" data-go="pagadores.html" 
+             data-roles="CLIENTE,OPERATIVO,COMERCIAL,ADMIN">
           <div class="doc-head">
             <div>
-              <div class="doc-title">Simulador</div>
-              <div class="doc-sub">Simular operaciones de factoring</div>
+              <div class="doc-title">Pagadores</div>
+              <div class="doc-sub">Cupos y calificación</div>
             </div>
-            <div class="pill">🧮</div>
+            <div class="pill">🏢</div>
           </div>
-          <button class="btn primary full" type="button">Simular</button>
+          <button class="btn primary full" type="button">Ver Cartera</button>
         </div>
 
-
-        <div class="doc-box" role="button" tabindex="0" data-go="cartera.html"
-             data-roles="CLIENTE,COMERCIAL,OPERATIVO,APROBADOR,ADMIN">
+        <div class="doc-box" role="button" tabindex="0" data-go="cartera.html" 
+             data-roles="CLIENTE,OPERATIVO,COMERCIAL,APROBADOR,ADMIN">
           <div class="doc-head">
             <div>
-              <div class="doc-title">Cartera</div>
-              <div class="doc-sub">Operaciones y Factoring</div>
+              <div class="doc-title">Cartera Vigente</div>
+              <div class="doc-sub">Operaciones Activas</div>
             </div>
-            <div class="pill">📁</div>
+            <div class="pill">💼</div>
           </div>
-          <button class="btn primary full" type="button">Abrir</button>
+          <button class="btn primary full" type="button">Ver Portafolio</button>
         </div>
-
         <div class="doc-box" role="button" tabindex="0" data-go="finanzas-pro.html"
-             data-roles="OPERATIVO,ADMIN">
+             data-roles="ADMIN">
           <div class="doc-head">
             <div>
               <div class="doc-title">Análisis Financiero</div>
-              <div class="doc-sub">Carga de balances y ratios</div>
+              <div class="doc-sub">Carga de Balances</div>
             </div>
             <div class="pill">📊</div>
           </div>
@@ -137,21 +136,35 @@
         </div>
 
         <div class="doc-box" role="button" tabindex="0" data-go="informe_riesgo.html"
-             data-roles="OPERATIVO,APROBADOR,ADMIN">
+             data-roles="APROBADOR,ADMIN">
           <div class="doc-head">
             <div>
               <div class="doc-title">Informe de Riesgo</div>
-              <div class="doc-sub">Revisión y Aprobación</div>
+              <div class="doc-sub">Generar informe final</div>
             </div>
             <div class="pill">⚖️</div>
           </div>
           <button class="btn ghost full" type="button">Gestionar</button>
         </div>
 
+        <div class="doc-box" role="button" tabindex="0" data-go="factoring-simular.html"
+            data-roles="COMERCIAL,ADMIN">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Simulador</div>
+              <div class="doc-sub">Calculadora rápida</div>
+            </div>
+            <div class="pill">🧮</div>
+          </div>
+          <button class="btn ghost full" type="button">Simular</button>
+        </div>
+
       </div>
 
       <div class="actions">
-        <button class="btn ghost" onclick="logout()">Cerrar sesión</button>
+        <button class="btn ghost" onclick="logout()">
+            <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
+        </button>
       </div>
 
     </section>
@@ -162,6 +175,12 @@
   <script>
     // Inicializar permisos al cargar
     document.addEventListener('DOMContentLoaded', () => {
+        // Verificar sesión primero
+        const session = JSON.parse(localStorage.getItem('tqa_session'));
+        if(session && session.nombre) {
+            document.getElementById('userNameDisplay').textContent = "Hola, " + session.nombre + " (" + session.role + ")";
+        }
+
         if(typeof applyMenuPermissions === 'function'){
             applyMenuPermissions(); 
         }
