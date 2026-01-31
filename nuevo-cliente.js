@@ -1,3 +1,6 @@
+// =========================
+// UTILIDADES DOM
+// =========================
 const $ = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 
@@ -15,10 +18,11 @@ function safeOnClick(id, fn){
   el.addEventListener("click", fn);
 }
 
-/** Tabs dentro de una pantalla */
+// =========================
+// LÓGICA DE NAVEGACIÓN (TABS)
+// =========================
 function setupTabs(scopeEl){
   if(!scopeEl) return;
-
   const tabs = $$(".tab", scopeEl);
   const panels = $$(".tabpanel", scopeEl);
 
@@ -29,39 +33,17 @@ function setupTabs(scopeEl){
   };
 
   tabs.forEach(tab => tab.addEventListener("click", () => activate(tab.dataset.tab)));
-
-  $$("[data-next-tab]", scopeEl).forEach(btn => {
-    btn.addEventListener("click", () => activate(btn.dataset.nextTab));
-  });
-
-  $$("[data-prev-tab]", scopeEl).forEach(btn => {
-    btn.addEventListener("click", () => activate(btn.dataset.prevTab));
-  });
+  $$("[data-next-tab]", scopeEl).forEach(btn => btn.addEventListener("click", () => activate(btn.dataset.nextTab)));
+  $$("[data-prev-tab]", scopeEl).forEach(btn => btn.addEventListener("click", () => activate(btn.dataset.prevTab)));
 }
 
-// =========================
-// Navegación (Nuevo Cliente)
-// =========================
+// Inicializar vistas y tabs
 safeOnClick("#btnPersonaNatural", () => showView("#view-natural"));
 safeOnClick("#btnPersonaJuridica", () => showView("#view-juridica"));
-
-safeOnClick("#cancelJuridica", () => showView("#view-selector"));
-safeOnClick("#cancelNatural", () => showView("#view-selector"));
-
-safeOnClick("#btnVolver", (e) => {
-  e.preventDefault();
-  if (history.length > 1) {
-    history.back();
-  } else {
-    window.location.href = "index.html";
-  }
-});
-
-// Tabs
 setupTabs($("#view-juridica"));
 setupTabs($("#view-natural"));
 
-// Contador PJ
+// Contador de caracteres (PJ)
 const pjText = document.querySelector('textarea[name="pj_detalle_actividad"]');
 const pjCount = $("#pjCount");
 if(pjText && pjCount){
@@ -70,42 +52,96 @@ if(pjText && pjCount){
   update();
 }
 
-// =========================
-// Persistencia (Futuro BD)
-// =========================
-const CLIENT_DRAFT_KEY = "tqa_cliente_draft";
+// =========================================================
+// CEREBRO: DETECCIÓN DE MODO (COMERCIAL vs PÚBLICO)
+// =========================================================
 
-/**
- * Crea un ID local temporal (hasta que el backend devuelva el real).
- */
-function makeLocalId(prefix="cli"){
-  return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+// Verificar si hay sesión activa (Comercial/Admin)
+// Nota: getSession debe estar disponible desde auth.js si está importado, si no, leemos localStorage manual
+function getLocalSession() {
+    try { return JSON.parse(localStorage.getItem('tqa_session')); } catch { return null; }
 }
 
-/**
- * Guarda el "cliente" en localStorage como borrador (simula BD).
- * En el futuro: reemplazar por POST /api/clientes y guardar el id devuelto.
- */
-function saveDraftClient(cliente){
-  localStorage.setItem(CLIENT_DRAFT_KEY, JSON.stringify(cliente));
+const session = getLocalSession();
+const isLoggedStaff = session && (session.role === 'COMERCIAL' || session.role === 'ADMIN' || session.role === 'OPERATIVO');
+
+// Configurar botón "Volver" dinámicamente
+safeOnClick("#btnVolverGeneral", (e) => {
+    e.preventDefault();
+    if (isLoggedStaff) {
+        window.location.href = "menu.html"; // Comercial vuelve al menú
+    } else {
+        window.location.href = "index.html"; // Público vuelve al login
+    }
+});
+
+// =========================
+// GUARDADO DE DATOS
+// =========================
+
+function makeId() { return `cli_${Date.now()}_${Math.floor(Math.random()*1000)}`; }
+
+// Registrar usuario en la "Base de Datos de Login" (tqa_local_users)
+function registerLoginUser(cliente, tipo) {
+    let email, password, nombre;
+
+    if (tipo === 'PN') {
+        email = cliente.data.pn_email;
+        password = cliente.data.pn_num_id; // Clave inicial = Cédula
+        nombre = `${cliente.data.pn_nombre} ${cliente.data.pn_apellido}`;
+    } else {
+        email = cliente.data.pj_contacto_email;
+        password = cliente.data.pj_ruc; // Clave inicial = RUC
+        nombre = cliente.data.pj_razon_social;
+    }
+
+    const newUser = {
+        email: email,
+        pass: password, 
+        role: "CLIENTE",
+        name: nombre,
+        id: cliente.id,
+        isLocal: true
+    };
+
+    const currentUsers = JSON.parse(localStorage.getItem('tqa_local_users') || "[]");
+    // Evitar duplicados por email
+    if(!currentUsers.find(u => u.email === email)) {
+        currentUsers.push(newUser);
+        localStorage.setItem('tqa_local_users', JSON.stringify(currentUsers));
+    }
+    return newUser;
 }
 
-/**
- * (FUTURO) Ejemplo de cómo quedaría cuando tengas backend.
- * - Descomenta y ajusta API_BASE/endpoint cuando exista.
- */
-// async function saveClientToBackend(cliente){
-//   const res = await fetch(`/api/clientes`, {
-//     method: "POST",
-//     headers: { "Content-Type":"application/json" },
-//     body: JSON.stringify(cliente)
-//   });
-//   const data = await res.json().catch(() => ({}));
-//   if(!res.ok) throw new Error(data?.error || data?.message || "Error guardando cliente");
-//   return data; // esperado: { id, ... }
-// }
+// Registrar cliente en la "Lista Maestra de Clientes" (tactiqa_clientes)
+function registerInClientList(cliente, tipo) {
+    let nombreDisplay, rucDisplay;
+    if (tipo === 'PN') {
+        nombreDisplay = `${cliente.data.pn_nombre} ${cliente.data.pn_apellido}`;
+        rucDisplay = cliente.data.pn_ruc || cliente.data.pn_num_id;
+    } else {
+        nombreDisplay = cliente.data.pj_razon_social;
+        rucDisplay = cliente.data.pj_ruc;
+    }
 
-// Submit (PN/PJ): guardar borrador y redirigir a finanzas
+    const clientSummary = {
+        id: cliente.id,
+        nombre: nombreDisplay,
+        ruc: rucDisplay,
+        tipo: tipo,
+        estado: "En Proceso", 
+        fechaRegistro: new Date().toISOString()
+    };
+
+    const clientList = JSON.parse(localStorage.getItem('tactiqa_clientes') || "[]");
+    clientList.push(clientSummary);
+    localStorage.setItem('tactiqa_clientes', JSON.stringify(clientList));
+}
+
+// =========================
+// MANEJO DEL SUBMIT (UNIFICADO)
+// =========================
+
 function attachSubmit(formId, tipo){
   const form = $(formId);
   if(!form) return;
@@ -115,34 +151,45 @@ function attachSubmit(formId, tipo){
     if(!form.reportValidity()) return;
 
     const data = Object.fromEntries(new FormData(form).entries());
+    // Limpieza de espacios
+    Object.keys(data).forEach(k => { if(typeof data[k] === "string") data[k] = data[k].trim(); });
 
-    // Normalización mínima: trim de strings
-    Object.keys(data).forEach(k => {
-      if(typeof data[k] === "string") data[k] = data[k].trim();
-    });
-
-    // Construye el objeto cliente “unificado”
     const cliente = {
-      id: makeLocalId(),
-      tipo, // "PN" o "PJ"
+      id: makeId(),
+      tipo, 
       creadoEn: new Date().toISOString(),
-      data, // todos los campos tal cual
+      data
     };
 
-    // ✅ Hoy: guardamos como borrador local
-    saveDraftClient(cliente);
+    // 1. Guardar en BD local y Crear Usuario
+    const newUserObj = registerLoginUser(cliente, tipo);
+    registerInClientList(cliente, tipo);
+    
+    // Guardar borrador (legacy)
+    localStorage.setItem("tqa_cliente_draft", JSON.stringify(cliente));
 
-    // ✅ En el futuro: guardar en BD
-    // try{
-    //   const saved = await saveClientToBackend(cliente);
-    //   saveDraftClient({ ...cliente, id: saved.id }); // o guardar solo el id
-    // }catch(err){
-    //   alert(`❌ No se pudo guardar: ${err.message}`);
-    //   return;
-    // }
+    // 2. LÓGICA DE REDIRECCIÓN A DOCUMENTOS
+    alert("✅ Registro exitoso. A continuación podrá cargar su documentación financiera.");
 
-    // ✅ Ir al HTML indicado
-    window.location.href = "finanzas-pro.html";
+    if (isLoggedStaff) {
+        // CASO A: Es el Comercial registrando a otro
+        // Vamos a finanzas pasando el ID del cliente en la URL
+        window.location.href = `finanzas-cliente.html?clientId=${cliente.id}`;
+    } else {
+        // CASO B: Es el Cliente registrándose solo
+        // ACCIÓN CLAVE: Auto-Login inmediato
+        const newSession = {
+            email: newUserObj.email,
+            role: "CLIENTE",
+            name: newUserObj.name,
+            id: newUserObj.id,
+            loginTime: Date.now()
+        };
+        localStorage.setItem('tqa_session', JSON.stringify(newSession));
+
+        // Redirigir directamente (ya logueado)
+        window.location.href = "finanzas-cliente.html";
+    }
   });
 }
 

@@ -6,7 +6,54 @@ const emptyMsg = document.getElementById('emptyMsg');
 let contador = 0; // Para generar IDs únicos por fila
 
 // ======================================================
-// FUNCIONES DE INTERFAZ (UI)
+// INICIALIZACIÓN Y GESTIÓN DE PAGADOR (NUEVO)
+// ======================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Cargar la lista de pagadores desde la memoria del navegador
+    cargarPagadoresDesdeMemoria();
+    
+    // 2. Asegurar que la zona de carga inicie bloqueada visualmente
+    const zona = document.getElementById('zonaCarga');
+    if(zona) {
+        zona.classList.remove('active');
+        zona.classList.add('disabled-zone'); // Asegúrate de tener el CSS para esto
+    }
+});
+
+function cargarPagadoresDesdeMemoria() {
+    const select = document.getElementById('selectPagador');
+    if (!select) return;
+
+    // Leemos la "base de datos" local
+    const pagadoresGuardados = JSON.parse(localStorage.getItem('db_pagadores')) || [];
+
+    // Si hay datos, creamos las opciones
+    pagadoresGuardados.forEach(pagador => {
+        const option = document.createElement('option');
+        option.value = pagador.ruc; // El valor que se enviará
+        option.textContent = `${pagador.razonSocial} (${pagador.ruc})`; // Lo que ve el usuario
+        select.appendChild(option);
+    });
+}
+
+function activarCarga() {
+    const selector = document.getElementById('selectPagador');
+    const zona = document.getElementById('zonaCarga');
+    
+    if (selector && selector.value !== "") {
+        // Desbloquear si hay selección
+        zona.classList.add('active');
+        zona.classList.remove('disabled-zone');
+    } else {
+        // Bloquear si vuelve a "Seleccione..."
+        zona.classList.remove('active');
+        zona.classList.add('disabled-zone');
+    }
+}
+
+// ======================================================
+// FUNCIONES DE INTERFAZ (UI - ORIGINALES)
 // ======================================================
 
 // Verifica si la tabla está vacía para mostrar el mensaje "No hay facturas"
@@ -17,6 +64,13 @@ function checkEmpty() {
 
 // Agrega una fila desde el input manual
 function agregarManual() {
+    // Validar que exista pagador primero (doble seguridad)
+    const pagador = document.getElementById('selectPagador').value;
+    if (pagador === "") {
+        alert("⚠️ Seleccione un pagador para continuar.");
+        return;
+    }
+
     const input = document.getElementById('inputClave');
     const err = document.getElementById('errorMsg');
     const clave = input.value.trim();
@@ -100,19 +154,68 @@ function updateLabel(inputId, labelId, required) {
     }
 }
 
-// Validar antes de enviar (Simulación)
+// Validar antes de enviar (ACTUALIZADO CON PAGADOR)
 function guardarTodo() {
+    // 1. Validar Pagador
+    const select = document.getElementById('selectPagador');
+    const pagadorRuc = select.value;
+    const pagadorTexto = select.options[select.selectedIndex].text; // "Nombre (RUC)"
+
+    if (pagadorRuc === "") {
+        alert("⚠️ Error: Debe seleccionar un Pagador antes de continuar.");
+        return;
+    }
+
+    // 2. Validar filas
     const rows = document.querySelectorAll('#tablaBody tr');
     if (rows.length === 0) {
         alert("⚠️ Error: Debe ingresar al menos una clave de acceso.");
         return;
     }
-    // Validación de PDF obligatorio
+
+    // 3. Validar PDF
     if (document.getElementById('fileFacturas').files.length === 0) {
         alert("⚠️ Error: Debe subir los archivos PDF de las facturas.");
         return;
     }
-    alert("✅ Validación completa. Procesando envío al servidor...");
+
+    // 4. CALCULAR TOTALES DEL LOTE
+    let sumaTotal = 0;
+    let docsValidos = 0;
+
+    rows.forEach(row => {
+        const celdaMonto = row.querySelector('.col-monto');
+        const txt = celdaMonto.innerText.replace('$','').trim();
+        const valor = parseFloat(txt);
+        
+        if (!isNaN(valor)) {
+            sumaTotal += valor;
+            docsValidos++;
+        }
+    });
+
+    // 5. CREAR OBJETO "LOTE"
+    const nuevoLote = {
+        id: "LOTE-" + Date.now().toString().slice(-6), // ID único corto
+        fecha: new Date().toISOString(),
+        pagador: pagadorTexto,
+        rucPagador: pagadorRuc,
+        cantidadDocs: docsValidos,
+        total: sumaTotal,
+        estado: "PENDIENTE" // Estado inicial
+    };
+
+    // 6. GUARDAR EN MEMORIA (Simulación de Base de Datos)
+    const dbCartera = JSON.parse(localStorage.getItem('db_cartera_lotes')) || [];
+    dbCartera.push(nuevoLote);
+    localStorage.setItem('db_cartera_lotes', JSON.stringify(dbCartera));
+
+    // 7. FEEDBACK
+    console.log("Lote guardado:", nuevoLote);
+    alert(`✅ Lote ${nuevoLote.id} enviado exitosamente a Cartera para aprobación.`);
+    
+    // Opcional: Recargar o limpiar
+    window.location.href = 'cartera.html'; // Redirigir para ver el resultado
 }
 
 

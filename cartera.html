@@ -3,10 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TACTIQA | Cartera de Operaciones</title>
-
+  <title>Cartera de Operaciones | INTERNATIONAL FACTORING</title>
   <link rel="stylesheet" href="styles.css">
-
 </head>
 
 <body>
@@ -16,40 +14,56 @@
 <section class="card form-card">
 
   <div class="brand-row">
-    <img src="logo.jpg" class="brand-logo-mini">
+    <img src="LOGOIF.png" class="brand-logo-mini" alt="IF" onerror="this.style.display='none'">
     <div>
-      <div class="brand-mini-text">TACTIQA</div>
-      <div class="brand-mini-sub">Administrador de Cartera</div>
+      <div class="brand-mini-text">INTERNATIONAL FACTORING</div>
+      <div class="brand-mini-sub">Gestión de Cartera y Solicitudes</div>
     </div>
   </div>
 
+  <div class="topbar" style="margin-bottom: 1rem;">
+      <button class="btn ghost small" onclick="window.location.href='menu.html'">← Volver al Menú</button>
+  </div>
+
   <div class="titlebar">
-    <h2>Operaciones de Factoring</h2>
+    <h2>Solicitudes de Operaciones</h2>
   </div>
 
   <div class="note">
-    Listado de operaciones generadas localmente.
+    Visualice el estado de sus cargas de facturas o gestione aprobaciones pendientes.
   </div>
 
   <div class="table-wrap">
     <table class="fin-table" id="tablaCartera">
       <thead>
         <tr>
-          <th>Empresa</th>
-          <th>Fecha Desembolso</th>
-          <th># Facturas</th>
-          <th>Total a Depositar</th>
-          <th>Fecha Registro</th>
-          <th></th>
+          <th>Fecha Solicitud</th>
+          <th>ID Lote</th>
+          <th>Pagador (Deudor)</th>
+          <th style="text-align:center;">Docs</th>
+          <th style="text-align:right;">Total Lote</th>
+          <th style="text-align:center;">Estado</th>
+          
+          <th id="thAcciones">Acción (Aprobador)</th>
+          
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody id="tbodyCartera">
+        </tbody>
     </table>
+    <div id="emptyMsg" style="text-align:center; padding:30px; color:var(--muted); display:none;">
+        No hay registros disponibles.
+    </div>
   </div>
 
 </section>
 </main>
 
+<script src="auth.js"></script>
 <script src="cartera.js"></script>
+<script>
+    // Activamos la seguridad al cargar
+    if(typeof checkAuth === 'function') checkAuth();
+</script>
 </body>
 </html>

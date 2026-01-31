@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard Cliente | Plataforma Factoring</title>
+  <title>Dashboard Cliente | INTERNATIONAL FACTORING</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -18,48 +18,44 @@
   <section class="view active">
     <div class="card form-card">
 
-      <!-- TOPBAR (igual factoring) -->
       <div class="topbar">
         <div class="brand-row">
           <div class="brand-mini">
-            <img class="brand-logo-mini" src="./logo.jpg" alt="Tactiqa" />
+            <img class="brand-logo-mini" src="LOGOIF.png" alt="IF" onerror="this.style.display='none'" />
             <div class="brand-mini-texts">
-              <div class="brand-mini-text">TACTIQA</div>
+              <div class="brand-mini-text">INTERNATIONAL FACTORING</div>
               <div class="brand-mini-sub">Dashboard del Cliente</div>
             </div>
           </div>
 
           <div class="actions right dash-actions">
-            <button class="btn ghost small" id="btnRefresh" type="button">
-              <span class="icon">⟳</span>Actualizar
+            <button class="btn ghost small" onclick="window.location.href='menu.html'">
+              <span class="arrow">⬅</span> Menú
             </button>
-            <button class="btn success small" id="btnDescargarEstado" type="button">
-              <span class="icon">⬇</span>Descargar
+            <button class="btn ghost small" id="btnRefresh" type="button">
+              <span class="icon">⟳</span> Actualizar
             </button>
           </div>
         </div>
       </div>
 
-      <!-- TITLEBAR OSCURO (clase nativa del styles.css) -->
       <div class="titlebar">
         <h2>Panel del Cliente</h2>
       </div>
 
-      <!-- NOTE (como tus módulos) -->
       <div class="note dash-note">
         <span class="pill">Inicio de operaciones: <strong id="desdeFecha">--/--/----</strong></span>
       </div>
 
-      <!-- CONTENIDO -->
       <div class="pad">
         <div class="dash-head">
-          <h1><span class="dash-name" id="clienteNombre">Cliente</span></h1>
+          <h1><span class="dash-name" id="clienteNombre">Cargando...</span></h1>
           <p>Aquí tienes un resumen de tus operaciones, líneas y saldos en factoring.</p>
 
           <div class="dash-meta">
             <div class="meta-box">
               <div class="label">Estado</div>
-              <div class="value" id="estadoCuenta">Activo</div>
+              <div class="value" id="estadoCuenta">...</div>
             </div>
             <div class="meta-box">
               <div class="label">Última actualización</div>
@@ -69,7 +65,6 @@
         </div>
       </div>
 
-      <!-- KPIS (sobrio, estilo plataforma) -->
       <div class="years dash-kpis">
         <div class="kpi-box" id="cardHistorial">
           <div class="kpi-top">
@@ -133,7 +128,6 @@
         </div>
       </div>
 
-      <!-- DETALLE (misma docs-grid que factoring) -->
       <div class="docs-grid dash-bottom">
         <div class="doc-box">
           <div class="doc-head">
@@ -176,10 +170,6 @@
         </div>
       </div>
 
-      <div class="dashboard-footer">
-        <a class="btn ghost" href="clientes.html">Volver</a>
-      </div>
-
       <div class="note">
         © <span id="yearNow"></span> Tactiqa Factoring — Dashboard (cliente)
       </div>
@@ -187,6 +177,11 @@
     </div>
   </section>
 
-  <script src="./cliente-dashboard.js"></script>
+  <script src="auth.js"></script>
+  <script src="cliente-dashboard.js"></script>
+  <script>
+    // Activamos la seguridad al cargar
+    if(typeof checkAuth === 'function') checkAuth();
+  </script>
 </body>
 </html>

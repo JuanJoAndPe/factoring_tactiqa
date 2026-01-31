@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gestión de Pagadores | INTERNATIONAL FACTORING</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* === ESTILOS ESPECÍFICOS DE LA VISTA === */
+    .split-layout { display: grid; grid-template-columns: 1fr; gap: 30px; }
+    
+    /* ZONA DE CARGA COMPACTA */
+    .file-drop-zone {
+        border: 2px dashed #d7dde7; padding: 8px 12px; border-radius: 6px;
+        background: #fdfdfd; cursor: pointer; transition: all 0.2s;
+        position: relative; display: flex; align-items: center; gap: 12px;
+    }
+    .file-drop-zone:hover { border-color: var(--accent); background: #f0f4f8; }
+    .file-drop-zone input {
+        position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer;
+    }
+    .upload-icon { font-size: 18px; }
+    .upload-text { font-size: 12px; font-weight: 600; color: #444; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;}
+    .file-status { font-size: 11px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+    .file-status.uploaded { color: #2a9d8f; }
+
+    /* BUSCADOR */
+    .search-bar { position: relative; margin-bottom: 15px; }
+    .search-bar input { padding-left: 35px; }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+
+    /* TABLA FIJA */
+    #tablaPagadores { table-layout: fixed; width: 100%; }
+    #tablaPagadores th { text-align: left; padding-left: 12px; color: var(--primary); font-weight: 700; }
+    #tablaPagadores td { text-align: left; padding-left: 12px; vertical-align: middle; }
+    #tablaPagadores th.center-col, #tablaPagadores td.center-col { text-align: center; padding-left: 0; }
+
+    /* BOTONES DE ICONO (VER DOC) */
+    .btn-icon {
+        background: none; border: none; cursor: pointer; font-size: 18px;
+        transition: transform 0.2s; padding: 5px; border-radius: 4px;
+    }
+    .btn-icon:hover { background: #eef2f8; transform: scale(1.1); }
+    .btn-icon.disabled { opacity: 0.2; cursor: default; pointer-events: none; }
+
+    /* === ESTILOS DEL MODAL (VISOR) === */
+    .modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000;
+        display: none; justify-content: center; align-items: center;
+        backdrop-filter: blur(2px);
+    }
+    .modal-overlay.active { display: flex; }
+    
+    .modal-card {
+        background: white; width: 90%; max-width: 800px; height: 80vh;
+        border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        display: flex; flex-direction: column;
+    }
+    .modal-header {
+        padding: 15px 20px; border-bottom: 1px solid #eee;
+        display: flex; justify-content: space-between; align-items: center;
+        background: var(--bg); border-top-left-radius: 8px; border-top-right-radius: 8px;
+    }
+    .modal-title { font-weight: 700; color: var(--primary); font-size: 16px; }
+    .modal-close {
+        background: none; border: none; font-size: 24px; color: var(--muted); cursor: pointer;
+    }
+    .modal-body {
+        flex: 1; padding: 0; background: #525659; /* Color de fondo típico de lectores PDF */
+        display: flex; justify-content: center; align-items: center;
+        overflow: hidden; position: relative;
+    }
+    
+    /* SIMULACIÓN PDF */
+    .pdf-simulation {
+        background: white; width: 70%; height: 90%; 
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; padding: 40px;
+    }
+    .pdf-placeholder-icon { font-size: 60px; color: #d32f2f; margin-bottom: 20px; }
+    .pdf-filename { font-family: monospace; color: #333; font-weight: 600; margin-bottom: 10px; background: #eee; padding: 5px 10px; border-radius: 4px; }
+    .pdf-note { color: #666; font-size: 13px; max-width: 400px; line-height: 1.5; }
+  </style>
+</head>
+
+<body>
+  <div class="bg"></div>
+
+  <main class="view active">
+    <section class="card form-card" style="max-width: 900px;">
+
+      <div class="brand-row">
+        <img src="LOGOIF.png" class="brand-logo-mini" alt="IF" onerror="this.style.display='none'"/>
+        <div style="flex:1">
+          <div class="brand-mini-text">INTERNATIONAL FACTORING</div>
+          <div class="brand-mini-sub">Calificación y Gestión de Pagadores</div>
+        </div>
+        <button class="btn ghost small" onclick="window.location.href='carga-facturas.html'">
+          <span class="arrow">⬅</span> Volver a Carga
+        </button>
+      </div>
+
+      <div class="pad" style="padding-top:20px;">
+        
+        <div class="split-layout">
+            
+            <div style="background: #fcfcfc; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
+                <h3 style="margin-top:0; color:var(--primary); font-size:15px; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">
+                    + Nuevo Pagador
+                </h3>
+                
+                <div class="grid two" style="margin-bottom:15px; gap: 15px;">
+                    <div class="field" style="margin:0;">
+                        <label style="margin-top:0;">RUC del Pagador <span class="req">*</span></label>
+                        <input type="text" id="nuevoRuc" maxlength="13" placeholder="Ej: 1790016919001" onkeypress="return /[0-9]/i.test(event.key)">
+                    </div>
+                    <div class="field" style="margin:0;">
+                        <label style="margin-top:0;">Razón Social <span class="req">*</span></label>
+                        <input type="text" id="nuevoNombre" placeholder="Ej: CORPORACION FAVORITA C.A.">
+                    </div>
+                </div>
+
+                <div class="grid two" style="gap:15px;">
+                    <div>
+                        <label style="margin-top:0; font-size:12px;">Copia de RUC</label>
+                        <div class="file-drop-zone">
+                            <span class="upload-icon">📄</span>
+                            <div class="upload-text">Seleccionar archivo...</div>
+                            <input type="file" id="fileRuc" accept=".pdf,.jpg,.png" onchange="updateFileStatus(this, 'statusRuc')">
+                            <div id="statusRuc" class="file-status">Sin archivo</div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label style="margin-top:0; font-size:12px;">Historial CXC (Interno)</label>
+                        <div class="file-drop-zone">
+                            <span class="upload-icon">📊</span>
+                            <div class="upload-text">Seleccionar archivo...</div>
+                            <input type="file" id="fileCXC" accept=".pdf,.xlsx,.xls,.csv" onchange="updateFileStatus(this, 'statusCXC')">
+                            <div id="statusCXC" class="file-status">Sin archivo</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="actions" style="border:none; padding-bottom:0; justify-content: flex-end; margin-top:15px;">
+                    <button class="btn primary small" style="height:36px;" onclick="guardarPagador()">Guardar y Calificar</button>
+                </div>
+            </div>
+
+            <div>
+                <h3 style="margin-top:0; color:var(--primary); font-size:15px;">Historial de Pagadores Calificados</h3>
+                
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="inputBusqueda" placeholder="Buscar por RUC o Razón Social..." onkeyup="filtrarTabla()" style="padding-top:8px; padding-bottom:8px;">
+                </div>
+
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table class="fin-table" id="tablaPagadores">
+                        <thead>
+                            <tr>
+                                <th style="width:130px;">RUC</th>
+                                <th>Razón Social</th>
+                                <th class="center-col" style="width:90px;">Docs</th>
+                                <th class="center-col" style="width:50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyPagadores">
+                            </tbody>
+                    </table>
+                    <div id="emptyMsg" style="text-align:center; padding:20px; color:var(--muted); font-size:13px; display:none;">
+                        No se encontraron pagadores.
+                    </div>
+                </div>
+            </div>
+        </div> 
+      </div>
+    </section>
+  </main>
+
+  <div id="visorModal" class="modal-overlay">
+      <div class="modal-card">
+          <div class="modal-header">
+              <div>
+                  <div class="modal-title" id="visorTitulo">Visualizando Documento</div>
+                  <div style="font-size:12px; color:var(--muted);" id="visorSubtitulo">Modo Vista Previa</div>
+              </div>
+              <button class="modal-close" onclick="cerrarVisor()">×</button>
+          </div>
+          <div class="modal-body">
+              <div class="pdf-simulation">
+                  <div class="pdf-placeholder-icon">📄</div>
+                  <div class="pdf-filename" id="visorArchivo">nombre_archivo.pdf</div>
+                  <p class="pdf-note">
+                      <strong>Vista Previa Simulada</strong><br>
+                      El archivo fue cargado y asociado correctamente al registro.<br>
+                      <em style="font-size:11px; color:#888;">(En este entorno sin servidor, no se almacena el binario persistente)</em>
+                  </p>
+                  <button class="btn primary small" style="margin-top:20px;" onclick="cerrarVisor()">Cerrar Vista</button>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // INICIALIZACIÓN
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', () => {
+        renderizarTabla();
+    });
+
+    // ==========================================
+    // LÓGICA DE VISUALIZACIÓN (MODAL)
+    // ==========================================
+    function verDocumento(nombreArchivo, tipoDoc, ruc) {
+        if(!nombreArchivo || nombreArchivo === 'null') return;
+
+        // Actualizar datos del modal
+        document.getElementById('visorTitulo').textContent = tipoDoc === 'RUC' ? 'Copia de RUC' : 'Historial de CXC (Interno)';
+        document.getElementById('visorSubtitulo').textContent = `Pagador RUC: ${ruc}`;
+        document.getElementById('visorArchivo').textContent = nombreArchivo;
+        
+        // Cambiar icono según tipo
+        const iconContainer = document.querySelector('.pdf-placeholder-icon');
+        iconContainer.textContent = tipoDoc === 'RUC' ? '📄' : '📊';
+
+        // Mostrar
+        document.getElementById('visorModal').classList.add('active');
+    }
+
+    function cerrarVisor() {
+        document.getElementById('visorModal').classList.remove('active');
+    }
+
+    // Cerrar al dar click fuera (backdrop)
+    document.getElementById('visorModal').addEventListener('click', (e) => {
+        if(e.target.id === 'visorModal') cerrarVisor();
+    });
+
+    // ==========================================
+    // LÓGICA DE UI (INPUTS ARCHIVOS)
+    // ==========================================
+    function updateFileStatus(input, statusId) {
+        const label = document.getElementById(statusId);
+        const textDiv = input.parentElement.querySelector('.upload-text');
+        
+        if (input.files && input.files[0]) {
+            label.textContent = "✅ Listo";
+            label.classList.add('uploaded');
+            let name = input.files[0].name;
+            if(name.length > 20) name = name.substring(0,18) + "..."; // Truncar nombre
+            textDiv.textContent = name;
+            textDiv.style.color = "#2a9d8f";
+        } else {
+            label.textContent = "Sin archivo";
+            label.classList.remove('uploaded');
+            textDiv.textContent = "Seleccionar archivo...";
+            textDiv.style.color = "#444";
+        }
+    }
+
+    // ==========================================
+    // LÓGICA DE DATOS (CRUD)
+    // ==========================================
+    
+    function guardarPagador() {
+        const rucInput = document.getElementById('nuevoRuc');
+        const nombreInput = document.getElementById('nuevoNombre');
+        const fileRuc = document.getElementById('fileRuc');
+        const fileCXC = document.getElementById('fileCXC');
+
+        const ruc = rucInput.value.trim();
+        const nombre = nombreInput.value.trim();
+
+        if (ruc.length !== 13) { alert("⚠️ El RUC debe tener 13 dígitos."); return; }
+        if (nombre === "") { alert("⚠️ Ingrese la Razón Social."); return; }
+
+        let db = JSON.parse(localStorage.getItem('db_pagadores')) || [];
+
+        if (db.some(p => p.ruc === ruc)) { alert("⚠️ Este pagador ya existe en el historial."); return; }
+
+        const nombreDocRuc = fileRuc.files[0] ? fileRuc.files[0].name : null;
+        const nombreDocCXC = fileCXC.files[0] ? fileCXC.files[0].name : null;
+
+        const nuevoPagador = {
+            ruc: ruc,
+            razonSocial: nombre,
+            docRuc: nombreDocRuc,
+            docCXC: nombreDocCXC,
+            fecha: new Date().toLocaleDateString()
+        };
+
+        db.push(nuevoPagador);
+        localStorage.setItem('db_pagadores', JSON.stringify(db));
+        
+        alert("Pagador guardado correctamente.");
+        
+        rucInput.value = "";
+        nombreInput.value = "";
+        fileRuc.value = "";
+        fileCXC.value = "";
+        resetFileUI(fileRuc, 'statusRuc');
+        resetFileUI(fileCXC, 'statusCXC');
+
+        renderizarTabla();
+    }
+
+    function resetFileUI(input, statusId) {
+        document.getElementById(statusId).textContent = "Sin archivo";
+        document.getElementById(statusId).classList.remove('uploaded');
+        input.parentElement.querySelector('.upload-text').textContent = "Seleccionar archivo...";
+        input.parentElement.querySelector('.upload-text').style.color = "#444";
+    }
+
+    function renderizarTabla(filtro = "") {
+        const tbody = document.getElementById('tbodyPagadores');
+        const empty = document.getElementById('emptyMsg');
+        tbody.innerHTML = "";
+
+        let db = JSON.parse(localStorage.getItem('db_pagadores')) || [];
+
+        if (filtro) {
+            const f = filtro.toLowerCase();
+            db = db.filter(p => p.ruc.includes(f) || p.razonSocial.toLowerCase().includes(f));
+        }
+
+        if (db.length === 0) {
+            empty.style.display = 'block';
+            return;
+        }
+        empty.style.display = 'none';
+
+        [...db].reverse().forEach((p) => {
+            const tr = document.createElement('tr');
+            
+            // Botones de acción para visualizar
+            // Si hay documento, onclick abre el visor. Si no, clase disabled.
+            
+            const btnRuc = p.docRuc 
+                ? `<button class="btn-icon" title="Ver RUC: ${p.docRuc}" onclick="verDocumento('${p.docRuc}', 'RUC', '${p.ruc}')">📄</button>` 
+                : `<button class="btn-icon disabled" title="Sin documento">📄</button>`;
+            
+            const btnCXC = p.docCXC 
+                ? `<button class="btn-icon" title="Ver CXC: ${p.docCXC}" onclick="verDocumento('${p.docCXC}', 'CXC', '${p.ruc}')">📊</button>` 
+                : `<button class="btn-icon disabled" title="Sin documento">📊</button>`;
+
+            tr.innerHTML = `
+                <td style="font-family:monospace; font-weight:600; font-size:13px;">${p.ruc}</td>
+                <td style="font-size:13px;">${p.razonSocial}</td>
+                <td class="center-col">${btnRuc} ${btnCXC}</td>
+                <td class="center-col">
+                    <button class="btn ghost small" style="color:#d53b3b; padding:2px 5px;" onclick="eliminarPagador('${p.ruc}')">✕</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function eliminarPagador(rucAEliminar) {
+        if(!confirm("¿Seguro que desea eliminar este pagador del historial?")) return;
+        let db = JSON.parse(localStorage.getItem('db_pagadores')) || [];
+        db = db.filter(p => p.ruc !== rucAEliminar);
+        localStorage.setItem('db_pagadores', JSON.stringify(db));
+        renderizarTabla(document.getElementById('inputBusqueda').value);
+    }
+
+    function filtrarTabla() {
+        renderizarTabla(document.getElementById('inputBusqueda').value);
+    }
+  </script>
+</body>
+</html>

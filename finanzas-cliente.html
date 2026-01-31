@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carga de Documentos | INTERNATIONAL FACTORING</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+<div class="bg"></div>
+
+<main class="view active">
+  <section class="card form-card">
+
+    <div class="brand-row">
+      <img src="LOGOIF.png" class="brand-logo-mini" alt="IF" onerror="this.style.display='none'"> 
+      <div>
+        <div class="brand-mini-text">INTERNATIONAL FACTORING</div>
+        <div class="brand-mini-sub">Información Financiera de la Empresa</div>
+      </div>
+    </div>
+
+    <div class="topbar" style="border-bottom:none; padding-bottom:0;">
+        <button class="btn ghost small" onclick="window.location.href='menu.html'">
+            <span class="arrow">⬅</span> Volver al Menú
+        </button>
+    </div>
+
+    <div class="titlebar">
+      <h2>Carga de Documentación</h2>
+    </div>
+
+    <div class="note">
+      <b>Instrucciones:</b> Por favor cargue los documentos solicitados en formato PDF para continuar con el proceso de evaluación de su línea de crédito.
+    </div>
+    
+    <section class="tabpanel active" id="panel-docs">
+      <form id="docsForm" class="docs-grid">
+        
+        <div class="left-column-group">
+            <div class="doc-group">
+              <h4>Balance General (3 últimos años)</h4>
+              <p class="small-note">Suba el archivo correspondiente a cada año (auditado si aplica)</p>
+              <div class="doc-box">
+                <label>Balance Año 1 <span class="req">*</span></label>
+                <input type="file" accept=".pdf" id="file-bg-0" required>
+              </div>
+              <div class="doc-box">
+                <label>Balance Año 2 <span class="req">*</span></label>
+                <input type="file" accept=".pdf" id="file-bg-1" required>
+              </div>
+              <div class="doc-box">
+                <label>Balance Año 3 <span class="req">*</span></label>
+                <input type="file" accept=".pdf" id="file-bg-2" required>
+              </div>
+            </div>
+
+            <div class="doc-group">
+              <h4>Estado de Resultados (3 últimos años)</h4>
+              <p class="small-note">Suba el archivo correspondiente a cada año</p>
+              <div class="doc-box">
+                <label>Est. Resultados Año 1 <span class="req">*</span></label>
+                <input type="file" accept=".pdf" id="file-er-0" required>
+              </div>
+              <div class="doc-box">
+                <label>Est. Resultados Año 2 <span class="req">*</span></label>
+                <input type="file" accept=".pdf" id="file-er-1" required>
+              </div>
+              <div class="doc-box">
+                <label>Est. Resultados Año 3 <span class="req">*</span></label>
+                <input type="file" accept=".pdf" id="file-er-2" required>
+              </div>
+            </div>
+
+            <div class="doc-group">
+                <h4>Legales y Tributarios</h4>
+                <div class="doc-box"><label>Certificado RUC <span class="req">*</span></label><input type="file" id="file-ruc" required></div>
+                <div class="doc-box"><label>Copia Cédula Rep. Legal <span class="req">*</span></label><input type="file" id="file-cedula" required></div>
+                <div class="doc-box"><label>Nombramiento Vigente <span class="req">*</span></label><input type="file" id="file-nombramiento" required></div>
+                <div class="doc-box"><label>Balance Interno (Mes anterior) <span class="req">*</span></label><input type="file" id="file-interno" required></div>
+                <div class="doc-box"><label>Declaraciones IVA (6 meses) <span class="req">*</span></label><input type="file" id="file-iva" multiple required></div>
+                <div class="doc-box"><label>CCO SRI<span class="req">*</span></label><input type="file" id="file-sri" multiple required></div>
+            </div>
+        </div>
+
+        <div class="right-column-group">
+          <div class="doc-group">
+              <h4>Operativo (Opcional)</h4>
+              <div class="doc-box"><label>Facturas a negociar</label><input type="file" id="file-facturas" multiple></div>
+              <div class="doc-box"><label>Retenciones</label><input type="file" id="file-retenciones"></div>
+              <div class="doc-box"><label>Guía de Remisión</label><input type="file" id="file-guia"></div>
+              <div class="doc-box"><label>Est. Cuenta Pagador</label><input type="file" id="file-pagador"></div>
+          </div>          
+
+          <div class="doc-group">
+              <h4>Tratamiento de datos</h4>
+              <div class="doc-box"><label>Autorización de buró de crédito<span class="req">*</span></label><input type="file" id="file-autorizacion" required></div>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <div class="actions">
+      <button class="btn ghost" type="button" onclick="window.location.href='menu.html'">Cancelar</button>
+      <button class="btn primary" type="button" id="btnSave">Guardar y Actualizar</button>
+    </div>
+
+  </section>
+</main>
+
+<script src="auth.js"></script>
+<script src="finanzas-cliente.js"></script>
+<script>
+    // Validar sesión al entrar
+    if(typeof checkAuth === 'function') checkAuth();
+</script>
+</body>
+</html>

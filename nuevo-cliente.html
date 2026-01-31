@@ -3,20 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TACTIQA - Nuevo Cliente</title>
+  <title>Registro de Cliente | INTERNATIONAL FACTORING</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
   <div class="bg"></div>
 
-  <!-- ====== SELECTOR NUEVO CLIENTE ====== -->
   <main id="view-selector" class="view active">
     <section class="card selector-card">
       <div class="header-slim">
         <div class="brand-mini">
-          <img class="brand-logo-mini" src="logo.jpg" alt="TACTIQA" />
-          <div class="brand-mini-text">TACTIQA</div>
+          <img class="brand-logo-mini" src="LOGOIF.png" alt="IF" onerror="this.style.display='none'" />
+          <div class="brand-mini-text">INTERNATIONAL FACTORING</div>
         </div>
       </div>
 
@@ -32,21 +31,20 @@
           <div class="choice-emoji">🏢</div>
           <button class="btn primary" id="btnPersonaJuridica" type="button">
             Persona Jurídica
-          </button> 
+          </button>
         </div>
       </div>
 
       <div class="selector-footer">
-        <a href="#" class="btn ghost" id="btnVolver">Volver</a>
+        <button class="btn ghost" id="btnVolverGeneral">Volver</button>
       </div>
     </section>
   </main>
 
-  <!-- ====== PERSONA JURIDICA ====== -->
   <main id="view-juridica" class="view">
     <section class="card form-card" data-tabs-scope="pj">
       <div class="topbar">
-        <button class="btn ghost small" id="cancelJuridica" type="button">Cancelar</button>
+        <button class="btn ghost small" onclick="showView('#view-selector')">Cancelar</button>
       </div>
 
       <div class="titlebar">
@@ -54,9 +52,9 @@
       </div>
 
       <div class="tabs">
-        <button class="tab active" data-tab="pj-contacto" type="button">Persona de Contacto</button>
-        <button class="tab" data-tab="pj-empresa" type="button">Información Empresa</button>
-        <button class="tab" data-tab="pj-rep" type="button">Info. Representante Legal</button>
+        <button class="tab active" data-tab="pj-contacto" type="button">Contacto</button>
+        <button class="tab" data-tab="pj-empresa" type="button">Empresa</button>
+        <button class="tab" data-tab="pj-rep" type="button">Rep. Legal</button>
       </div>
 
       <div class="note">Los campos con (<span class="req">*</span>) son obligatorios.</div>
@@ -64,13 +62,13 @@
       <form id="pjForm" class="tabpanel active" data-panel="pj-contacto">
         <div class="grid two">
           <div class="col">
-            <label>Primer Nombre <span class="req">*</span></label>
+            <label>Primer Nombre Contacto <span class="req">*</span></label>
             <input name="pj_contacto_primer_nombre" required />
 
-            <label>Primer Apellido <span class="req">*</span></label>
+            <label>Primer Apellido Contacto <span class="req">*</span></label>
             <input name="pj_contacto_primer_apellido" required />
 
-            <label>Email <span class="req">*</span></label>
+            <label>Email Corporativo <span class="req">*</span></label>
             <input name="pj_contacto_email" type="email" required />
           </div>
 
@@ -79,10 +77,14 @@
             <input name="pj_contacto_cel" />
 
             <label>¿Es usted el representante legal? <span class="req">*</span></label>
-            <div class="radio-row">
-              <label class="radio"><input type="radio" name="pj_es_rep" value="Si" required /> Sí</label>
-              <label class="radio"><input type="radio" name="pj_es_rep" value="No" required /> No</label>
-            </div>
+              <div class="radio-row">
+                <label class="radio-option">
+                  <input type="radio" name="pj_es_rep" value="Si" required> Sí
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="pj_es_rep" value="No" required> No
+                </label>
+              </div>
           </div>
         </div>
 
@@ -97,7 +99,7 @@
       <section class="tabpanel" data-panel="pj-empresa">
         <div class="grid two">
           <div class="col">
-            <label>RUC <span class="req">*</span></label>
+            <label>RUC Empresa <span class="req">*</span></label>
             <input name="pj_ruc" form="pjForm" required />
 
             <label>Razón Social <span class="req">*</span></label>
@@ -138,7 +140,7 @@
       <section class="tabpanel" data-panel="pj-rep">
         <div class="grid two">
           <div class="col">
-            <label>Tipo de Identificación <span class="req">*</span></label>
+            <label>Tipo Identificación Rep. Legal <span class="req">*</span></label>
             <select name="pj_rep_tipo_id" form="pjForm" required>
               <option value="">Seleccione</option>
               <option>Cédula</option>
@@ -150,27 +152,26 @@
           </div>
 
           <div class="col">
-            <label>Primer Nombre <span class="req">*</span></label>
+            <label>Nombres Rep. Legal <span class="req">*</span></label>
             <input name="pj_rep_nombre" form="pjForm" required />
 
-            <label>Primer Apellido <span class="req">*</span></label>
+            <label>Apellidos Rep. Legal <span class="req">*</span></label>
             <input name="pj_rep_apellido" form="pjForm" required />
           </div>
         </div>
 
         <div class="actions">
           <button class="btn ghost" type="button" data-prev-tab="pj-empresa">‹ Atrás</button>
-          <button class="btn success" type="submit" form="pjForm">Guardar</button>
+          <button class="btn success" type="submit" form="pjForm">Finalizar Registro</button>
         </div>
       </section>
     </section>
   </main>
 
-  <!-- ====== PERSONA NATURAL ====== -->
   <main id="view-natural" class="view">
     <section class="card form-card" data-tabs-scope="pn">
       <div class="topbar">
-        <button class="btn ghost small" id="cancelNatural" type="button">Cancelar</button>
+        <button class="btn ghost small" onclick="showView('#view-selector')">Cancelar</button>
       </div>
 
       <div class="titlebar">
@@ -178,9 +179,9 @@
       </div>
 
       <div class="tabs">
-        <button class="tab active" data-tab="pn-contacto" type="button">Persona de Contacto</button>
-        <button class="tab" data-tab="pn-empresa" type="button">Información Empresa</button>
-        <button class="tab" data-tab="pn-persona" type="button">Información Persona Natural</button>
+        <button class="tab active" data-tab="pn-contacto" type="button">Datos Personales</button>
+        <button class="tab" data-tab="pn-empresa" type="button">Datos Comerciales (RUC)</button>
+        <button class="tab" data-tab="pn-persona" type="button">Identificación</button>
       </div>
 
       <div class="note">Los campos con (<span class="req">*</span>) son obligatorios.</div>
@@ -188,14 +189,14 @@
       <form id="pnForm" class="tabpanel active" data-panel="pn-contacto">
         <div class="grid two">
           <div class="col">
-            <label>Primer Nombre <span class="req">*</span></label>
+            <label>Nombres <span class="req">*</span></label>
             <input name="pn_nombre" required />
 
-            <label>Primer Apellido <span class="req">*</span></label>
+            <label>Apellidos <span class="req">*</span></label>
             <input name="pn_apellido" required />
           </div>
           <div class="col">
-            <label>Email <span class="req">*</span></label>
+            <label>Email Personal <span class="req">*</span></label>
             <input name="pn_email" type="email" required />
 
             <label>Teléfono Celular</label>
@@ -214,11 +215,11 @@
       <section class="tabpanel" data-panel="pn-empresa">
         <div class="grid two">
           <div class="col">
-            <label>RUC <span class="req">*</span></label>
+            <label>RUC (Personal) <span class="req">*</span></label>
             <input name="pn_ruc" form="pnForm" required />
 
-            <label>Razón Social <span class="req">*</span></label>
-            <input name="pn_razon" form="pnForm" required />
+            <label>Nombre Comercial (si aplica)</label>
+            <input name="pn_razon" form="pnForm" />
           </div>
           <div class="col">
             <label>Provincia <span class="req">*</span></label>
@@ -254,18 +255,19 @@
           </div>
           <div class="col">
             <label>Fecha de Nacimiento <span class="req">*</span></label>
-            <input name="pn_fn" form="pnForm" required />
+            <input name="pn_fn" form="pnForm" required placeholder="DD/MM/AAAA" />
           </div>
         </div>
 
         <div class="actions">
           <button class="btn ghost" type="button" data-prev-tab="pn-empresa">‹ Atrás</button>
-          <button class="btn success" type="submit" form="pnForm">Guardar</button>
+          <button class="btn success" type="submit" form="pnForm">Finalizar Registro</button>
         </div>
       </section>
     </section>
   </main>
 
+  <script src="auth.js"></script>
   <script src="nuevo-cliente.js"></script>
 </body>
 </html>

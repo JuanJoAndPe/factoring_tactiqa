@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TACTIQA | Menú principal</title>
+  <title>INTERNATIONAL FACTORING | Menú principal</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 
@@ -14,9 +14,9 @@
     <section class="card form-card">
 
       <div class="brand-row">
-        <img src="logo.jpg" class="brand-logo-mini" alt="TACTIQA" onerror="this.style.display='none'"/>
+        <img src="LOGOIF.png" class="brand-logo-mini" alt="INTERNATIONAL FACTORING" onerror="this.style.display='none'"/>
         <div class="brand-mini-texts">
-          <div class="brand-mini-text">TACTIQA</div>
+          <div class="brand-mini-text">INTERNATIONAL FACTORING</div>
           <div class="brand-mini-sub" id="userNameDisplay">Panel principal</div>
         </div>
       </div>
@@ -36,7 +36,31 @@
             </div>
             <div class="pill">🏠</div>
           </div>
-          <button class="btn success full" type="button">Ver Estado</button>
+          <button class="btn primary full" type="button">Ver Estado</button>
+        </div>
+
+        <div class="doc-box" role="button" tabindex="0" data-go="carga-facturas.html" 
+             data-roles="CLIENTE">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Carga de Facturas</div>
+              <div class="doc-sub">Facturas, Retenciones y Guías</div>
+            </div>
+            <div class="pill">🧾</div>
+          </div>
+          <button class="btn primary full" type="button">Gestionar Carga</button>
+        </div>
+
+        <div class="doc-box" role="button" tabindex="0" data-go="calificar-pagador.html" 
+             data-roles="CLIENTE">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Calificar Pagador</div>
+              <div class="doc-sub">Consultar cupo y riesgo</div>
+            </div>
+            <div class="pill">🏢</div>
+          </div>
+          <button class="btn primary full" type="button">Consultar</button>
         </div>
 
         <div class="doc-box" role="button" tabindex="0" data-go="nuevo-cliente.html" 
@@ -111,9 +135,11 @@
   <script src="auth.js"></script>
   <script src="menu.js"></script>
   <script>
-    // Inicializar permisos
+    // Inicializar permisos al cargar
     document.addEventListener('DOMContentLoaded', () => {
-        applyMenuPermissions();
+        if(typeof applyMenuPermissions === 'function'){
+            applyMenuPermissions(); 
+        }
     });
   </script>
 </body>
