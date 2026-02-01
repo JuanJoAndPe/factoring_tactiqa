@@ -202,7 +202,8 @@
           </div>
       </div>
   </div>
-
+  <script src="auth.js"></script>
+  <script src="upload.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
         renderizarTabla();
@@ -262,40 +263,88 @@
     // LÓGICA DE DATOS (CRUD)
     // ==========================================
     
-    function guardarPagador() {
+    async 
+    async function guardarPagador() {
         const rucInput = document.getElementById('nuevoRuc');
         const nombreInput = document.getElementById('nuevoNombre');
         const fileRuc = document.getElementById('fileRuc');
         const fileCXC = document.getElementById('fileCXC');
 
-        const ruc = rucInput.value.trim();
-        const nombre = nombreInput.value.trim();
+        const ruc = (rucInput.value || "").trim();
+        const nombre = (nombreInput.value || "").trim();
 
         if (ruc.length !== 13) { alert("El RUC debe tener 13 dígitos."); return; }
-        if (nombre === "") { alert("Ingrese la Razón Social."); return; }
-        if (fileRuc != "") { alert("Debe adjuntar certificado de RUC")}
-        if (fileCXC != "") { alert("Debe adjuntar historial interno de CXC")}
+        if (!nombre) { alert("Ingrese la Razón Social."); return; }
+        if (!fileRuc.files || fileRuc.files.length === 0) { alert("Debe adjuntar certificado de RUC"); return; }
+        if (!fileCXC.files || fileCXC.files.length === 0) { alert("Debe adjuntar historial interno de CXC"); return; }
 
-        let db = JSON.parse(localStorage.getItem('db_pagadores')) || [];
+        if (typeof uploadFile !== 'function' || typeof API_URL === 'undefined') {
+            alert("❌ Falta upload.js o API_URL. Asegúrate de incluir auth.js y upload.js.");
+            return;
+        }
 
-        if (db.some(p => p.ruc === ruc)) { alert("Este pagador ya existe en el historial."); return; }
+        const session = (typeof getSession === 'function') ? getSession() : JSON.parse(localStorage.getItem('tqa_session') || "null");
+        const clienteAsociado = session?.id || null;
 
-        const nombreDocRuc = fileRuc.files[0] ? fileRuc.files[0].name : null;
-        const nombreDocCXC = fileCXC.files[0] ? fileCXC.files[0].name : null;
+        // Subir a S3
+        const folder = `PAGADORES/${ruc}/CALIFICACION/${Date.now()}`;
+        let docRucUp, docCxcUp;
 
-        const nuevoPagador = {
-            ruc: ruc,
-            razonSocial: nombre,
-            docRuc: nombreDocRuc,
-            docCXC: nombreDocCXC,
-            fecha: new Date().toLocaleDateString()
-        };
+        try {
+            docRucUp = await uploadFile('fileRuc', `${folder}/RUC`, null, null, null, { maxMB: 20, hideButtonState: true });
+            docCxcUp = await uploadFile('fileCXC', `${folder}/CXC`, null, null, null, { maxMB: 20, hideButtonState: true });
+            if (!docRucUp || !docCxcUp) throw new Error("No se pudieron subir los documentos.");
+        } catch (e) {
+            console.error(e);
+            alert("❌ Error subiendo a S3: " + e.message);
+            return;
+        }
 
-        db.push(nuevoPagador);
-        localStorage.setItem('db_pagadores', JSON.stringify(db));
-        
-        alert("Pagador guardado correctamente.");
-        
+        // Guardar en MySQL (Pagadores + links)
+        const pagadorId = `PAG-${Date.now().toString().slice(-8)}`;
+
+        try {
+            // 1) Crear pagador si no existe
+            const res = await fetch(`${API_URL}/pagadores`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: pagadorId,
+                    ruc,
+                    nombre,
+                    cliente_asociado: clienteAsociado,
+                    cupo: 0
+                })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.message || "No se pudo crear el pagador.");
+
+            // 2) Guardar doc_ruc en columna permitida
+            await fetch(`${API_URL}/files/save-link`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tabla: 'Pagadores', id: pagadorId, columna: 'doc_ruc', url: docRucUp.publicUrl })
+            });
+
+            // 3) Guardar CXC en doc_otros (no existe doc_cxc en tablas.csv)
+            await fetch(`${API_URL}/files/save-link`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tabla: 'Pagadores', id: pagadorId, columna: 'doc_otros', url: docCxcUp.publicUrl })
+            });
+
+        } catch (e) {
+            console.error(e);
+            // fallback local
+            let db = JSON.parse(localStorage.getItem('db_pagadores')) || [];
+            db.push({ ruc, razonSocial: nombre, docRuc: docRucUp, docCXC: docCxcUp, fecha: new Date().toLocaleDateString() });
+            localStorage.setItem('db_pagadores', JSON.stringify(db));
+            alert("⚠️ Se subió a S3, pero no se pudo guardar en BD. Se guardó temporalmente en el navegador.Detalle: " + e.message);
+            return;
+        }
+
+        alert("✅ Pagador guardado en BD y documentos subidos a S3.");
+
         rucInput.value = "";
         nombreInput.value = "";
         fileRuc.value = "";
@@ -306,7 +355,7 @@
         renderizarTabla();
     }
 
-    function resetFileUI(input, statusId) {
+function resetFileUI(input, statusId) {
         document.getElementById(statusId).textContent = "Sin archivo";
         document.getElementById(statusId).classList.remove('uploaded');
         input.parentElement.querySelector('.upload-text').textContent = "Seleccionar archivo...";

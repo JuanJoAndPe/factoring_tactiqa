@@ -28,8 +28,11 @@ async function loginUser(email, password) {
         });
 
         // Si la respuesta no es OK (ej: 404, 500, 403), lanzamos error
-        if (!response.ok) {
-            throw new Error(`Error del Servidor: ${response.status}`);
+       if (!response.ok) {
+        let errText = "";
+        try { errText = await response.text(); } catch (e) {}
+        console.error("❌ API Error body:", errText);
+        throw new Error(`Error del Servidor: ${response.status} ${errText ? `| ${errText}` : ""}`);
         }
 
         const data = await response.json();

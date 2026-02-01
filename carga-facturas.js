@@ -192,7 +192,7 @@ function updateLabel(inputId, labelId, required) {
 // ======================================================
 // GUARDADO (SQL TRANSACCIONAL)
 // ======================================================
-function guardarTodo() {
+async function guardarTodo() {
     const selectPagador = document.getElementById('selectPagador');
     const pagadorRuc = selectPagador.value;
     const pagadorTexto = selectPagador.options[selectPagador.selectedIndex].text;
@@ -248,6 +248,46 @@ function guardarTodo() {
         usuarioNombre: clienteNombreFinal,
         creadoPor: subidoPor
     };
+    // ======================================================
+    // SUBIDA DE ARCHIVOS A S3 (PDFs, Retenciones, Guías)
+    // ======================================================
+    try {
+        if (typeof uploadFilesMulti !== 'function') {
+            throw new Error("upload.js no está cargado. Incluye <script src=\"upload.js\"></script> antes de carga-facturas.js");
+        }
+
+        const baseFolder = `OPERACIONES/${nuevoLote.id}`;
+        // Facturas (obligatorio)
+        const facturasSubidas = await uploadFilesMulti('fileFacturas', `${baseFolder}/FACTURAS`, { maxMB: 20, hideButtonState: true });
+
+        // Retenciones y Guías (opcionales)
+        const retencionesSubidas = document.getElementById('fileRet')?.files?.length
+            ? await uploadFilesMulti('fileRet', `${baseFolder}/RETENCIONES`, { maxMB: 20, hideButtonState: true })
+            : [];
+
+        const guiasSubidas = document.getElementById('fileGuia')?.files?.length
+            ? await uploadFilesMulti('fileGuia', `${baseFolder}/GUIAS`, { maxMB: 20, hideButtonState: true })
+            : [];
+
+        // Guardamos los links (y keys) en el objeto del lote
+        nuevoLote.documentos = {
+            facturas: facturasSubidas,
+            retenciones: retencionesSubidas,
+            guias: guiasSubidas
+        };
+
+        // Si por alguna razón no subió nada, abortamos
+        if (!nuevoLote.documentos.facturas.length) {
+            alert("⚠️ No se subió ninguna factura a S3.");
+            return;
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert("❌ Error subiendo documentos a S3: " + e.message);
+        return;
+    }
+
 
     // 6. Guardar en Base de Datos
     // TODO: API CALL (SQL: Transaction START)
@@ -256,12 +296,92 @@ function guardarTodo() {
     // 3. API CALL (Subir PDFs a S3 y guardar URL en tabla Documentos)
     // TODO: API CALL (SQL: Transaction COMMIT)
     
-    const dbCartera = JSON.parse(localStorage.getItem('db_cartera_lotes')) || [];
-    dbCartera.push(nuevoLote);
-    localStorage.setItem('db_cartera_lotes', JSON.stringify(dbCartera));
+    // 6. Guardar en Base de Datos (AWS + MySQL)
+    try {
+        if (typeof API_URL === 'undefined') throw new Error("API_URL no definido (auth.js).");
 
-    alert(`✅ Operación registrada para ${clienteNombreFinal}.\nLote ${nuevoLote.id} enviado.`);
-    window.location.href = 'cartera.html'; 
+        // 6.1 Crear/actualizar Operación
+        const opRes = await fetch(`${API_URL}/operaciones`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: nuevoLote.id,
+                cliente_id: clienteIdFinal,
+                pagador_ruc: pagadorRuc,
+                cantidad_docs: docsValidos,
+                monto_total: sumaTotal,
+                estado: "PENDIENTE",
+                creado_por: subidoPor
+            })
+        });
+        const opData = await opRes.json();
+        if (!opRes.ok || !opData.success) {
+            throw new Error(opData.message || "No se pudo crear la operación en BD.");
+        }
+
+        // 6.2 Mapear PDFs a claves (heurística)
+        const claves = Array.from(rows).map(r => (r.querySelector('.key-cell')?.innerText || '').trim());
+        const pdfs = (nuevoLote.documentos?.facturas || []);
+
+        const pdfPorClave = {};
+        // Si hay 1-1 por orden
+        if (pdfs.length === claves.length) {
+            claves.forEach((k, i) => { pdfPorClave[k] = pdfs[i]?.publicUrl || null; });
+        } else {
+            // Intentar por nombre de archivo
+            for (const k of claves) {
+                const found = pdfs.find(p => (p.fileName || '').includes(k));
+                pdfPorClave[k] = found ? found.publicUrl : null;
+            }
+        }
+
+        // 6.3 Guardar DetalleFacturas (batch)
+        const detalles = Array.from(rows).map(r => {
+            const clave = (r.querySelector('.key-cell')?.innerText || '').trim();
+            const montoTxt = (r.querySelector('.col-monto')?.innerText || '').replace('$','').trim();
+            const monto = parseFloat(montoTxt);
+            const estadoSri = (r.querySelector('.col-estado')?.innerText || '').trim();
+
+            return {
+                clave_acceso: clave,
+                monto: isNaN(monto) ? null : monto,
+                estado_sri: estadoSri || null,
+                url_pdf: pdfPorClave[clave] || null
+            };
+        });
+
+        const detRes = await fetch(`${API_URL}/operaciones/facturas/batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ operacion_id: nuevoLote.id, facturas: detalles })
+        });
+        const detData = await detRes.json();
+        if (!detRes.ok || !detData.success) {
+            throw new Error(detData.message || "No se pudo guardar el detalle de facturas.");
+        }
+
+        // 6.4 (Opcional) Guardar un link “resumen” en Operaciones.doc_factura_pdf (primer PDF)
+        if (pdfs[0]?.publicUrl) {
+            await fetch(`${API_URL}/files/save-link`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tabla: 'Operaciones', id: nuevoLote.id, columna: 'doc_factura_pdf', url: pdfs[0].publicUrl })
+            });
+        }
+
+    } catch (e) {
+        console.error(e);
+        // Fallback local (para no perder trabajo)
+        const dbCartera = JSON.parse(localStorage.getItem('db_cartera_lotes')) || [];
+        dbCartera.push(nuevoLote);
+        localStorage.setItem('db_cartera_lotes', JSON.stringify(dbCartera));
+        alert("⚠️ Se subieron documentos a S3, pero no se pudo guardar en BD. Se guardó temporalmente en el navegador.Detalle: " + e.message);
+        return;
+    }
+
+    alert(`✅ Operación registrada para ${clienteNombreFinal}.
+Lote ${nuevoLote.id} enviado.`);
+    window.location.href = 'cartera.html';
 }
 
 
