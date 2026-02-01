@@ -53,7 +53,7 @@ if(pjText && pjCount){
 }
 
 // =========================================================
-// CEREBRO: DETECCIÓN DE MODO (COMERCIAL vs PÚBLICO)
+// CEREBRO: DETECCIÓN DE MODO
 // =========================================================
 
 function getLocalSession() {
@@ -63,7 +63,6 @@ function getLocalSession() {
 const session = getLocalSession();
 const isLoggedStaff = session && (session.role === 'COMERCIAL' || session.role === 'ADMIN' || session.role === 'OPERATIVO');
 
-// Configurar botón "Volver" dinámicamente
 safeOnClick("#btnVolverGeneral", (e) => {
     e.preventDefault();
     if (isLoggedStaff) {
@@ -74,12 +73,11 @@ safeOnClick("#btnVolverGeneral", (e) => {
 });
 
 // =========================
-// GUARDADO DE DATOS
+// GUARDADO DE DATOS (SQL)
 // =========================
 
-function makeId() { return `cli_${Date.now()}_${Math.floor(Math.random()*1000)}`; }
+function makeId() { return `cli_${Date.now()}`; }
 
-// Registrar usuario en la "Base de Datos de Login"
 function registerLoginUser(cliente, tipo) {
     let email, password, nombre;
 
@@ -102,6 +100,7 @@ function registerLoginUser(cliente, tipo) {
         isLocal: true
     };
 
+    // TODO: API CALL (SQL: INSERT INTO Users (email, password, role, name) VALUES (?,?,?,?))
     const currentUsers = JSON.parse(localStorage.getItem('tqa_local_users') || "[]");
     if(!currentUsers.find(u => u.email === email)) {
         currentUsers.push(newUser);
@@ -110,7 +109,6 @@ function registerLoginUser(cliente, tipo) {
     return newUser;
 }
 
-// Registrar en Lista de Clientes
 function registerInClientList(cliente, tipo) {
     let nombreDisplay, rucDisplay;
     if (tipo === 'PN') {
@@ -130,13 +128,14 @@ function registerInClientList(cliente, tipo) {
         fechaRegistro: new Date().toISOString()
     };
 
+    // TODO: API CALL (SQL: INSERT INTO Clientes (id, ruc, nombre, tipo, estado) VALUES (?,?,?,?,?))
     const clientList = JSON.parse(localStorage.getItem('tactiqa_clientes') || "[]");
     clientList.push(clientSummary);
     localStorage.setItem('tactiqa_clientes', JSON.stringify(clientList));
 }
 
 // =========================
-// MANEJO DEL SUBMIT (CORREGIDO)
+// MANEJO DEL SUBMIT
 // =========================
 
 function attachSubmit(formId, tipo){
@@ -150,6 +149,14 @@ function attachSubmit(formId, tipo){
     const data = Object.fromEntries(new FormData(form).entries());
     Object.keys(data).forEach(k => { if(typeof data[k] === "string") data[k] = data[k].trim(); });
 
+    // TODO: API CALL (SQL: SELECT count(*) FROM Clientes WHERE ruc = ?)
+    const ruc = tipo === 'PN' ? data.pn_num_id : data.pj_ruc;
+    const existingClients = JSON.parse(localStorage.getItem('tactiqa_clientes') || "[]");
+    if(existingClients.some(c => c.ruc === ruc)) {
+        alert("⚠️ Este cliente ya está registrado.");
+        return;
+    }
+
     const cliente = {
       id: makeId(),
       tipo, 
@@ -157,20 +164,18 @@ function attachSubmit(formId, tipo){
       data
     };
 
-    // 1. Guardar cliente
+    // 1. Guardar cliente en SQL
     const newUserObj = registerLoginUser(cliente, tipo);
     registerInClientList(cliente, tipo);
     
+    // TODO: API CALL (Cache temporal para pasar el ID a la siguiente pantalla)
     localStorage.setItem("tqa_cliente_draft", JSON.stringify(cliente));
 
     alert("✅ Registro exitoso. Procediendo a carga de información financiera.");
 
-    // 2. REDIRECCIÓN INTELIGENTE
     if (isLoggedStaff) {
-        // CASO COMERCIAL: Redirige a la herramienta avanzada (Finanzas Pro)
         window.location.href = `finanzas-pro.html?clientId=${cliente.id}`;
     } else {
-        // CASO CLIENTE (AUTO-REGISTRO): Auto-login y carga simple
         const newSession = {
             email: newUserObj.email,
             role: "CLIENTE",

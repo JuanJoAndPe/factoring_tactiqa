@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // Inicialización
     const today = new Date();
     document.getElementById('reportDate').textContent = today.toLocaleDateString('es-EC');
     
@@ -8,16 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDocuments();
     loadFinancialKPIs();
 
-    // Referencias a botones (Asegúrate que en tu HTML el botón de enviar tenga id="btnSendToCommittee")
-    // Si todavía se llama "btnFinalize" en tu HTML, el script intentará buscarlo también.
     const btnSend = document.getElementById('btnSendToCommittee') || document.getElementById('btnFinalize');
-    const btnDownload = document.getElementById('btnDownloadPDF');
     const btnViewDocs = document.getElementById('btnViewDocs');
-    
     const modal = document.getElementById('docsModal');
-    const reportContent = document.getElementById('reportContent');
 
-    // 1. EVENTO VER DOCUMENTOS
     if (btnViewDocs) {
         btnViewDocs.addEventListener('click', () => {
             modal.classList.add('active');
@@ -27,199 +20,98 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target == modal) modal.classList.remove('active');
     }
 
-    // 2. ENVIAR A COMITÉ Y GUARDAR DATOS
     if (btnSend) {
         btnSend.addEventListener('click', () => {
-            // A) Recopilar todos los datos del formulario
             const riskData = {
                 fecha: document.getElementById('reportDate').textContent,
-                score: document.getElementById('scoreCredito').value,
-                deuda: document.getElementById('deudaReportada').value,
-                moras: document.getElementById('morasRegistradas').value,
-                obsBuro: document.getElementById('obsBuro').value,
-                obsFin: document.getElementById('obsFin').value,
-                chkJudicial: document.getElementById('chkJudicial').value,
-                chkSri: document.getElementById('chkSri').value,
-                chkIess: document.getElementById('chkIess').value,
+                score: document.getElementById('viewScore').value,
+                capacidadPago: document.getElementById('viewCapacidad').value,
+                
+                chkJudicial: document.querySelector('input[name="chkJudicial"]:checked')?.value,
+                chkSri: document.querySelector('input[name="chkSri"]:checked')?.value,
+                chkUafe: document.querySelector('input[name="chkUafe"]:checked')?.value,
+                
                 conclusion: document.getElementById('txtConclusion').value
             };
 
-            // B) Guardar en LocalStorage (Para que el Aprobador lo vea)
-            localStorage.setItem('tqa_risk_report_final', JSON.stringify(riskData));
-
-            // C) Feedback visual y bloqueo
-            disableAllInputs();
-            alert("✅ Informe enviado correctamente al Comité de Crédito.\nAhora puede descargar su constancia en PDF.");
-            
-            // D) Ocultar botón de enviar y mostrar descargar
-            btnSend.style.display = 'none';
-            btnDownload.style.display = 'inline-flex';
-        });
-    }
-
-    // 3. GENERAR PDF (Lógica original intacta)
-    if (btnDownload) {
-        btnDownload.addEventListener('click', () => {
-            
-            reportContent.classList.add('pdf-mode');
-
-            const opt = {
-                margin:       15,
-                filename:     `Informe_${document.getElementById('txtEmpresa').value || 'Cliente'}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 2, 
-                    useCORS: true, 
-                    letterRendering: true,
-                    scrollY: 0
-                },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-
-            html2pdf().set(opt).from(reportContent).save()
-            .then(() => {
-                reportContent.classList.remove('pdf-mode');
-            })
-            .catch(err => {
-                console.error("Error PDF:", err);
-                reportContent.classList.remove('pdf-mode');
-                alert("Error al generar PDF.");
-            });
-        });
-    }
-
-    // --- FUNCIONES AUXILIARES ---
-
-    function loadDocuments() {
-        const docsJSON = localStorage.getItem('finanzasPro_DocsTemp');
-        const listContainer = document.getElementById('docsList');
-        listContainer.innerHTML = ''; 
-
-        if(!docsJSON) { 
-            listContainer.innerHTML = '<p style="padding:10px; color:#999;">No hay documentos.</p>'; 
-            return; 
-        }
-        
-        try {
-            const data = JSON.parse(docsJSON);
-            const docs = data.documents || [];
-
-            if (docs.length === 0) {
-                listContainer.innerHTML = '<p style="padding:10px; color:#999;">No hay documentos.</p>'; 
+            if (!riskData.conclusion) {
+                alert("⚠️ Por favor ingrese una conclusión.");
                 return;
             }
 
-            docs.forEach(doc => {
-                const item = document.createElement('div');
-                item.style.cssText = "display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #eee;";
-                item.innerHTML = `
-                    <div style="font-size:20px; color:#e74c3c;"><i class="fa-solid fa-file-pdf"></i></div>
-                    <div style="flex:1;">
-                        <div style="font-weight:bold; font-size:13px; color:#333;">${doc.name}</div>
-                        <div style="font-size:11px; color:#666;">${doc.type} (${doc.size})</div>
-                    </div>
-                    <button class="btn-download-doc" style="cursor:pointer; background:#f0f2f5; border:none; padding:8px 12px; border-radius:4px; color:#0d0035; font-size:12px;">
-                        <i class="fa-solid fa-download"></i> Descargar
-                    </button>
-                `;
-                const btn = item.querySelector('.btn-download-doc');
-                btn.addEventListener('click', () => downloadSimulation(doc.name));
-                listContainer.appendChild(item);
-            });
+            // TODO: API CALL (SQL: INSERT INTO InformesRiesgo (cliente_id, score, estado, json_detalle) VALUES (?, ?, 'PENDIENTE_COMITE', ?))
+            localStorage.setItem('tqa_risk_report_final', JSON.stringify(riskData));
 
-        } catch(e) { console.error(e); }
-    }
-
-    function downloadSimulation(filename) {
-        const text = `Simulación de descarga para: ${filename}`;
-        const blob = new Blob([text], { type: 'text/plain' });
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    function loadFinancialKPIs() {
-    const kpiJSON = localStorage.getItem('tqa_financial_kpis');
-    // ... lógica existente de parseo ...
-
-    // NUEVA LÓGICA: DETECTAR SI FALTAN DATOS
-    let missingData = false;
-    if (!kpiJSON) {
-        missingData = true;
-    } else {
-        const kpis = JSON.parse(kpiJSON);
-        // Si liquidez es 0.00 o undefined, asumimos que falta carga
-        if (kpis.liquidez === "0.00" || !kpis.liquidez) missingData = true;
-    }
-
-    if (missingData) {
-        // Inyectar alerta y botón en la sección de Índices Financieros
-        const kpiGrid = document.querySelector('.kpi-grid');
-        if(kpiGrid) {
-            kpiGrid.innerHTML = `
-                <div style="grid-column: 1 / -1; background: #fff3cd; color: #856404; padding: 15px; border-radius: 6px; border: 1px solid #ffeeba; text-align: center;">
-                    <strong> No hay datos financieros cargados</strong><br>
-                    Los índices están en 0. Debe procesar los balances para generar el informe.
-                    <br><br>
-                    <button class="btn primary small" onclick="window.location.href='finanzas-pro.html'">
-                        <i class="fa-solid fa-calculator"></i> Cargar Balances y Calcular
-                    </button>
-                </div>
-            `;
-        }
-    } else {
-        // ... (Tu código existente que llena los spans .value) ...
-    }
-}
-
-    function loadClientData() {
-        const draftJSON = localStorage.getItem("tqa_cliente_draft");
-        if (!draftJSON) return;
-        try {
-            const client = JSON.parse(draftJSON);
-            const data = client.data || {};
-            if (client.tipo === "PJ") {
-                setVal('txtEmpresa', data.pj_razon_social);
-                setVal('txtRuc', data.pj_ruc);
-                setVal('txtActividad', data.pj_detalle_actividad);
-                setVal('txtRepLegal', `${data.pj_rep_nombre} ${data.pj_rep_apellido}`);
-                setVal('txtCiRep', data.pj_rep_num);
-            } else {
-                setVal('txtEmpresa', data.pn_razon || `${data.pn_nombre} ${data.pn_apellido}`);
-                setVal('txtRuc', data.pn_ruc);
-                setVal('txtActividad', "Persona Natural");
-                setVal('txtRepLegal', `${data.pn_nombre} ${data.pn_apellido}`);
-                setVal('txtCiRep', data.pn_num_id);
-            }
-        } catch (e) { console.error(e); }
-    }
-
-    function disableAllInputs() {
-        const inputs = document.querySelectorAll('input, select, textarea');
-        inputs.forEach(input => {
-            input.disabled = true;
-            input.style.backgroundColor = "#fafafa";
-            input.style.border = "1px solid #eee";
-            
-            // Convertir selects a texto plano para que se vean mejor bloqueados
-            if(input.tagName === 'SELECT'){
-                const text = input.options[input.selectedIndex]?.text || "";
-                const span = document.createElement('span');
-                span.textContent = text;
-                span.style.fontWeight = '600';
-                span.style.display = 'block';
-                span.style.padding = '10px';
-                input.parentNode.replaceChild(span, input);
-            }
+            alert("✅ INFORME ENVIADO A COMITÉ.\n\nEl expediente ha sido transferido.");
+            window.location.href = 'menu.html';
         });
     }
 
-    function setVal(id, val) {
-        const el = document.getElementById(id);
-        if (el) el.value = val || '';
+    function loadDocuments() {
+        // TODO: API CALL (SQL: SELECT * FROM Documentos WHERE cliente_id = ?)
+        const docsJSON = localStorage.getItem('finanzasPro_DocsTemp');
+        const list = document.getElementById('docsList');
+        if(!list) return;
+
+        const data = docsJSON ? JSON.parse(docsJSON) : { documents: [] };
+
+        if (data.documents && data.documents.length > 0) {
+            let html = '<ul style="list-style:none; padding:0;">';
+            data.documents.forEach(doc => {
+                 html += `<li style="margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:5px;">
+                            <a href="#" style="color:#2980b9; text-decoration:none;">
+                                <i class="fa-solid fa-file-pdf"></i> ${doc.name}
+                            </a>
+                          </li>`;
+            });
+            html += '</ul>';
+            list.innerHTML = html;
+        } else {
+            list.innerHTML = '<p style="color:#999; font-style:italic;">No se han cargado documentos digitales.</p>';
+        }
+    }
+
+    function loadFinancialKPIs() {
+        // TODO: API CALL (SQL: SELECT kpis_json FROM AnalisisFinanciero WHERE cliente_id = ? ORDER BY id DESC LIMIT 1)
+        const kpiJSON = localStorage.getItem('tqa_financial_kpis');
+        
+        if (kpiJSON) {
+            const kpis = JSON.parse(kpiJSON);
+            document.getElementById('viewEndeudamiento').value = kpis.endeudamiento || "0.00";
+            
+            let score = 500;
+            if (parseFloat(kpis.liquidez) > 1.5) score += 200;
+            if (parseFloat(kpis.endeudamiento) < 0.6) score += 150;
+            
+            document.getElementById('viewScore').value = score;
+            document.getElementById('viewCapacidad').value = `$ ${parseFloat(kpis.liquidez * 10000).toFixed(2)}`; 
+        }
+    }
+
+    function loadClientData() {
+        // TODO: API CALL (SQL: SELECT * FROM Clientes WHERE id = ?)
+        const draftJSON = localStorage.getItem("tqa_cliente_draft");
+        if (draftJSON) {
+            try {
+                const client = JSON.parse(draftJSON);
+                const data = client.data || {};
+                
+                const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+
+                if (client.tipo === "PJ") {
+                    setVal('txtEmpresa', data.pj_razon_social);
+                    setVal('txtRuc', data.pj_ruc);
+                    setVal('txtActividad', data.pj_actividad_economica); 
+                    setVal('txtRepLegal', `${data.pj_rep_nombre} ${data.pj_rep_apellido}`);
+                    setVal('txtCiRep', data.pj_rep_num);
+                } else {
+                    setVal('txtEmpresa', data.pn_razon || `${data.pn_nombre} ${data.pn_apellido}`);
+                    setVal('txtRuc', data.pn_ruc);
+                    setVal('txtActividad', "Persona Natural");
+                    setVal('txtRepLegal', `${data.pn_nombre} ${data.pn_apellido}`);
+                    setVal('txtCiRep', data.pn_num_id);
+                }
+            } catch (e) { console.error(e); }
+        }
     }
 });

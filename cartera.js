@@ -1,4 +1,4 @@
-// DATOS MOCK: Simulamos operaciones vivas
+// DATOS MOCK (FALLBACK)
 const MOCK_PORTFOLIO = [
     {
         id: "OP-2026-001",
@@ -9,63 +9,28 @@ const MOCK_PORTFOLIO = [
         balance: 25000.00,
         status: "VIGENTE"
     },
-    {
-        id: "OP-2026-002",
-        client: "Servicios Tecnológicos Globales",
-        payer: "CONSTRUCTORA HIDALGO",
-        dueDate: "2026-01-28",
-        amount: 12500.00,
-        balance: 12500.00,
-        status: "VENCIDO"
-    },
-    {
-        id: "OP-2025-889",
-        client: "Constructora Andes",
-        payer: "GOBIERNO PROVINCIAL GUAYAS",
-        dueDate: "2025-12-15",
-        amount: 50000.00,
-        balance: 50000.00,
-        status: "MORA"
-    },
-    {
-        id: "OP-2026-003",
-        client: "Importadora del Pacífico S.A.",
-        payer: "TIA S.A.",
-        dueDate: "2026-02-28", 
-        amount: 15000.00,
-        balance: 5000.00,
-        status: "VIGENTE"
-    },
-    {
-        id: "OP-2025-900",
-        client: "Exportadora Bananera Noboa",
-        payer: "WALMART INC.",
-        dueDate: "2026-01-10", 
-        amount: 100000.00,
-        balance: 0.00, 
-        status: "PAGADO"
-    }
+    // ...
 ];
 
-// Variable global para mantener los datos filtrados según el rol
 let filteredData = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Cargar datos brutos
+    // TODO: API CALL (SQL: SELECT o.id, c.nombre as client, o.monto ... FROM Operaciones o JOIN Clientes c ON o.cliente_id = c.id WHERE ...)
     let rawData = JSON.parse(localStorage.getItem('tqa_cartera_activa'));
     if (!rawData || rawData.length === 0) {
         rawData = MOCK_PORTFOLIO;
         localStorage.setItem('tqa_cartera_activa', JSON.stringify(rawData));
     }
 
-    // 2. APLICAR FILTRO DE SEGURIDAD (SEGÚN ROL)
+    // 2. APLICAR FILTRO DE SEGURIDAD
     filteredData = applySecurityFilter(rawData);
 
-    // 3. Renderizar lo que el usuario TIENE PERMISO de ver
+    // 3. Renderizar
     renderPortfolio(filteredData);
-    calculateKPIs(filteredData); // Los KPIs de arriba también se ajustan
+    calculateKPIs(filteredData);
 
-    // 4. Configurar búsqueda sobre los datos ya filtrados
+    // 4. Configurar búsqueda
     document.getElementById('searchOp').addEventListener('keyup', (e) => filterLocalView(e.target.value));
     document.getElementById('filterState').addEventListener('change', () => filterLocalView(document.getElementById('searchOp').value));
 });
@@ -74,23 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
 function applySecurityFilter(allData) {
     const session = JSON.parse(localStorage.getItem('tqa_session'));
     
-    // Si no hay sesión o es Admin/Operativo/Comercial, ve todo
     if (!session || ['ADMIN', 'OPERATIVO', 'COMERCIAL', 'APROBADOR'].includes(session.role)) {
         return allData;
     }
 
-    // Si es CLIENTE, solo ve sus propias operaciones
+    // Cliente ve solo lo suyo
     if (session.role === 'CLIENTE') {
-        // Filtramos donde el nombre del cliente coincida (parcialmente para evitar errores de espacios)
         const myName = session.nombre.toLowerCase();
-        
         return allData.filter(item => {
-            // Compara el campo 'client' de la operación con el nombre del usuario logueado
             return item.client.toLowerCase().includes(myName);
         });
     }
-
-    return []; // Por seguridad, si el rol no existe, no retorna nada
+    return []; 
 }
 
 // === FILTRO VISUAL (Buscador) ===
@@ -98,7 +58,6 @@ function filterLocalView(searchTerm) {
     const stateFilter = document.getElementById('filterState').value;
     searchTerm = searchTerm.toLowerCase();
 
-    // Filtramos sobre 'filteredData', no sobre 'localStorage' directo, para mantener la seguridad
     const visibleData = filteredData.filter(item => {
         const matchesText = 
             item.client.toLowerCase().includes(searchTerm) || 
@@ -147,7 +106,6 @@ function renderPortfolio(data) {
             statusHtml = `<span class="badge" style="background:#e3f2fd; color:#1565c0;">VIGENTE (${diffDays}d)</span>`;
         }
 
-        // Si es cliente, ocultamos el botón de gestión (teléfono)
         const actionBtn = isClient 
             ? `<span style="color:#ccc; font-size:11px;">-</span>`
             : `<button class="btn ghost small" onclick="openGestion('${op.id}')" title="Registrar Gestión"><i class="fa-solid fa-phone"></i></button>`;

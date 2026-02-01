@@ -1,13 +1,11 @@
 (function() {
     "use strict";
 
-    // 1. Obtener sesión
     const session = typeof getSession === 'function' ? getSession() : null;
     if (!session) return; 
 
     console.log(`Cargando Tareas Comercial. Usuario: ${session.name}`);
 
-    // ========= HELPERS =========
     const formatMoney = v => Number(v || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
     const formatDate = iso => {
       if (!iso) return "--";
@@ -15,13 +13,12 @@
       return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth() + 1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     };
 
-    // ========= LOGIC =========
-    const STORAGE_KEY = "db_cartera_lotes"; // Leemos los lotes reales
+    const STORAGE_KEY = "db_cartera_lotes"; 
     const tbody = document.getElementById("tbodyTareas");
     const emptyMsg = document.getElementById("emptyMsg");
 
     function renderTable() {
-        // Leemos la "Base de Datos" compartida
+        // TODO: API CALL (SQL: SELECT * FROM Operaciones WHERE estado IN ('PENDIENTE', 'APROBADO', 'RECHAZADO') ORDER BY fecha DESC)
         let lotes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         
         tbody.innerHTML = "";
@@ -32,11 +29,9 @@
         }
         if(emptyMsg) emptyMsg.style.display = 'none';
 
-        // Renderizamos (Orden inverso: lo más nuevo arriba)
         [...lotes].reverse().forEach((lote) => {
             const tr = document.createElement("tr");
             
-            // Lógica de colores para el estado
             let badgeClass = "badge"; 
             let estadoTexto = lote.estado;
 
@@ -49,7 +44,7 @@
                 estadoTexto = "✅ Aprobado";
             }
             else if(lote.estado === "RECHAZADO") {
-                badgeClass = "badge bad"; // Usa el estilo rojo definido en styles.css
+                badgeClass = "badge bad"; 
                 estadoTexto = "❌ Negado";
             }
 
@@ -65,7 +60,6 @@
         });
     }
 
-    // Inicializar
     renderTable();
 
 })();
