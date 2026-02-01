@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TACTIQA | Mesa de Análisis</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    /* Estilos de Pestañas */
+    .tabs { display: flex; gap: 20px; border-bottom: 2px solid #eee; margin-bottom: 20px; }
+    .tab { padding: 10px 20px; cursor: pointer; color: #666; font-weight: 600; border-bottom: 3px solid transparent; }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Tarjetas de Tareas */
+    .task-card { 
+        background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-bottom: 10px;
+        display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
+    }
+    .task-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    .task-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; }
+    .type-pagador { background: #e3f2fd; color: #2196f3; }
+    .type-operacion { background: #e8f5e9; color: #4caf50; }
+  </style>
+</head>
+<body>
+<div class="bg"></div>
+
+<main class="view active">
+  <section class="card form-card" style="max-width: 900px;">
+    
+    <div class="brand-row">
+       <img src="LOGOIF.png" class="brand-logo-mini" alt="IF"> 
+      <div>
+        <div class="brand-title">MESA DE CONTROL</div>
+        <div class="brand-sub">Gestión de Riesgos y Análisis</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('inbox')"> Pendientes (<span id="countPendientes">0</span>)</div>
+        <div class="tab" onclick="switchTab('report')"> Mi Reporte de Gestión</div>
+    </div>
+
+    <div id="inbox" class="tab-content active">
+        <div id="taskList">
+            <div style="text-align:center; padding:30px; color:#999;">Cargando tareas...</div>
+        </div>
+    </div>
+
+    <div id="report" class="tab-content">
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+            <h3>Últimas Gestiones</h3>
+            <button class="btn ghost small" onclick="loadReport()"><i class="fa-solid fa-sync"></i> Actualizar</button>
+        </div>
+        <table class="fin-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Detalle</th>
+                    <th>Resolución</th>
+                </tr>
+            </thead>
+            <tbody id="reportTableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="actions">
+        <button class="btn ghost" onclick="window.location.href='menu.html'">Volver al Menú</button>
+    </div>
+
+  </section>
+</main>
+
+<script src="auth.js"></script>
+<script src = "mesa-analisis.js"></script>
+</body>
+</html>

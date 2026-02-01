@@ -52,8 +52,36 @@
           <button class="btn success full" type="button" style="background-color: #2A4A73; border-color: #2A4A73;">Gestionar (Inbox)</button>
         </div>
 
+        <div class="doc-box" role="button" tabindex="0" data-go="mesa-analisis.html" 
+             data-roles="ANALISTA,ADMIN">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Mesa de Análisis</div>
+              <div class="doc-sub">Bandeja de Pendientes</div>
+            </div>
+            <div class="pill" style="background:#fff3cd; color:#856404;">🔍</div>
+          </div>
+          <button class="btn primary full" type="button" style="background:#e67e22; border-color:#e67e22;">
+            Ver Solicitudes
+          </button>
+        </div>
+
+        <div class="doc-box" role="button" tabindex="0" data-go="tareas.html" 
+             data-roles="COMITE,APROBADOR,ADMIN">
+          <div class="doc-head">
+            <div>
+              <div class="doc-title">Comité de Crédito</div>
+              <div class="doc-sub">Resoluciones Pendientes</div>
+            </div>
+            <div class="pill" style="background:#d1e7dd; color:#0f5132;">⚖️</div>
+          </div>
+          <button class="btn primary full" type="button" style="background:#1F3A5F;">
+            Ver Bandeja
+          </button>
+        </div>
+
         <div class="doc-box" role="button" tabindex="0" data-go="clientes.html"
-             data-roles="COMERCIAL,OPERATIVO,APROBADOR,ADMIN">
+             data-roles="COMERCIAL,OPERATIVO,APROBADOR,ANALISTA,ADMIN">
           <div class="doc-head">
             <div>
               <div class="doc-title">Directorio Clientes</div>
@@ -101,7 +129,7 @@
         </div>
 
         <div class="doc-box" role="button" tabindex="0" data-go="pagadores.html" 
-             data-roles="CLIENTE,OPERATIVO,COMERCIAL,ADMIN">
+             data-roles="CLIENTE,OPERATIVO,COMERCIAL,ADMIN,ANALISTA">
           <div class="doc-head">
             <div>
               <div class="doc-title">Pagadores</div>
@@ -137,7 +165,7 @@
         </div>
 
         <div class="doc-box" role="button" tabindex="0" data-go="informe_riesgo.html"
-             data-roles="APROBADOR,ADMIN">
+             data-roles="ADMIN">
           <div class="doc-head">
             <div>
               <div class="doc-title">Informe de Riesgo</div>
@@ -158,34 +186,6 @@
             <div class="pill">🧮</div>
           </div>
           <button class="btn primary full" type="button">Simular</button>
-        </div>
-
-        <div class="doc-box" role="button" tabindex="0" data-go="tareas.html" 
-             data-roles="ANALISTA,ADMIN">
-          <div class="doc-head">
-            <div>
-              <div class="doc-title">Mesa de Análisis</div>
-              <div class="doc-sub">Bandeja de Pendientes</div>
-            </div>
-            <div class="pill" style="background:#fff3cd; color:#856404;">🔍</div>
-          </div>
-          <button class="btn primary full" type="button" style="background:#e67e22; border-color:#e67e22;">
-            Ver Solicitudes
-          </button>
-        </div>
-
-        <div class="doc-box" role="button" tabindex="0" data-go="tareas.html" 
-             data-roles="COMITE,ADMIN">
-          <div class="doc-head">
-            <div>
-              <div class="doc-title">Comité de Crédito</div>
-              <div class="doc-sub">Resoluciones Pendientes</div>
-            </div>
-            <div class="pill" style="background:#d1e7dd; color:#0f5132;">⚖️</div>
-          </div>
-          <button class="btn primary full" type="button" style="background:#1F3A5F;">
-            Ver Bandeja
-          </button>
         </div>
 
       </div>

@@ -63,22 +63,26 @@
   </main>
 
   <script src="auth.js"></script>
-  
-  <script>
-    // Verificar sesión existente
+<script>
+    // Verificar sesión al cargar
     document.addEventListener('DOMContentLoaded', () => {
-        if (typeof getSession === 'function' && getSession()) {
-            window.location.href = "menu.html";
+        if (typeof getSession === 'function') {
+            const session = getSession();
+            // Si ya hay sesión válida, ir al menú
+            if (session && session.token) {
+                window.location.href = "menu.html";
+            }
         }
     });
 
-    // Manejo del Submit
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
+    // Manejo del Submit (CON ASYNC/AWAIT)
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault(); 
 
         const u = document.getElementById('loginUser').value.trim();
         const p = document.getElementById('loginPass').value.trim();
         const msg = document.getElementById('loginMsg');
+        const btn = document.querySelector('button[type="submit"]');
         
         msg.style.display = 'none';
 
@@ -87,19 +91,32 @@
             return;
         }
 
-        // Verifica si auth.js cargó
         if (typeof loginUser !== 'function') {
-            alert("Error crítico: auth.js no cargó. Revisa que el archivo esté en la carpeta.");
+            alert("Error crítico: auth.js no cargó.");
             return;
         }
 
-        // Intentar Login con auth.js
-        const result = loginUser(u, p);
+        // 1. Feedback visual (para que el usuario sepa que está cargando)
+        const textoOriginal = btn.textContent;
+        btn.textContent = "Verificando...";
+        btn.disabled = true;
 
-        if (result.success) {
-            window.location.href = "menu.html";
-        } else {
-            showError(result.message);
+        try {
+            // 2. Esperar respuesta de AWS
+            const result = await loginUser(u, p);
+
+            if (result.success) {
+                window.location.href = "menu.html";
+            } else {
+                showError(result.message || "Credenciales incorrectas");
+            }
+        } catch (error) {
+            console.error(error);
+            showError("No se pudo conectar con el servidor.");
+        } finally {
+            // 3. Restaurar botón
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
         }
     });
 
@@ -109,11 +126,11 @@
         msg.style.display = 'block';
     }
 
-    // Función para los botones de demo
+    // Funciones demo (opcional)
     function fillLogin(u, p) {
         document.getElementById('loginUser').value = u;
         document.getElementById('loginPass').value = p;
     }
-  </script>
+</script>
 </body>
 </html>

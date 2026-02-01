@@ -1,3 +1,7 @@
+function makeId() {
+    return 'cli_' + Date.now() + Math.floor(Math.random() * 1000);
+};
+
 // =========================
 // UTILIDADES DOM
 // =========================
@@ -37,13 +41,11 @@ function setupTabs(scopeEl){
   $$("[data-prev-tab]", scopeEl).forEach(btn => btn.addEventListener("click", () => activate(btn.dataset.prevTab)));
 }
 
-// Inicializar vistas y tabs
 safeOnClick("#btnPersonaNatural", () => showView("#view-natural"));
 safeOnClick("#btnPersonaJuridica", () => showView("#view-juridica"));
 setupTabs($("#view-juridica"));
 setupTabs($("#view-natural"));
 
-// Contador de caracteres (PJ)
 const pjText = document.querySelector('textarea[name="pj_detalle_actividad"]');
 const pjCount = $("#pjCount");
 if(pjText && pjCount){
@@ -73,65 +75,45 @@ safeOnClick("#btnVolverGeneral", (e) => {
 });
 
 // =========================
-// GUARDADO DE DATOS (SQL)
+// GUARDADO DE DATOS (CONECTADO A AWS)
 // =========================
 
 function makeId() { return `cli_${Date.now()}`; }
 
-function registerLoginUser(cliente, tipo) {
-    let email, password, nombre;
+// Función principal de envío
+async function enviarDatosAlServidor(cliente, tipo) {
+    try {
+        console.log("Enviando datos...", cliente);
+        
+        const response = await fetch(`${API_URL}/clientes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cliente)
+        });
 
-    if (tipo === 'PN') {
-        email = cliente.data.pn_email;
-        password = cliente.data.pn_num_id; 
-        nombre = `${cliente.data.pn_nombre} ${cliente.data.pn_apellido}`;
-    } else {
-        email = cliente.data.pj_contacto_email;
-        password = cliente.data.pj_ruc; 
-        nombre = cliente.data.pj_razon_social;
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Error al guardar en el servidor");
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error(error);
+        alert("❌ Error de conexión: " + error.message);
+        throw error;
     }
-
-    const newUser = {
-        email: email,
-        pass: password, 
-        role: "CLIENTE",
-        name: nombre,
-        id: cliente.id,
-        isLocal: true
-    };
-
-    // TODO: API CALL (SQL: INSERT INTO Users (email, password, role, name) VALUES (?,?,?,?))
-    const currentUsers = JSON.parse(localStorage.getItem('tqa_local_users') || "[]");
-    if(!currentUsers.find(u => u.email === email)) {
-        currentUsers.push(newUser);
-        localStorage.setItem('tqa_local_users', JSON.stringify(currentUsers));
-    }
-    return newUser;
 }
 
-function registerInClientList(cliente, tipo) {
-    let nombreDisplay, rucDisplay;
-    if (tipo === 'PN') {
-        nombreDisplay = `${cliente.data.pn_nombre} ${cliente.data.pn_apellido}`;
-        rucDisplay = cliente.data.pn_ruc || cliente.data.pn_num_id;
-    } else {
-        nombreDisplay = cliente.data.pj_razon_social;
-        rucDisplay = cliente.data.pj_ruc;
+// Validar duplicados en el servidor
+async function checkRucEnServidor(ruc) {
+    try {
+        const res = await fetch(`${API_URL}/clientes/check-ruc?ruc=${ruc}`);
+        const data = await res.json();
+        return data.exists; // Devuelve true o false
+    } catch (e) {
+        console.error("No se pudo verificar RUC", e);
+        return false; // Asumimos que no existe si falla la red para no bloquear
     }
-
-    const clientSummary = {
-        id: cliente.id,
-        nombre: nombreDisplay,
-        ruc: rucDisplay,
-        tipo: tipo,
-        estado: "En Proceso", 
-        fechaRegistro: new Date().toISOString()
-    };
-
-    // TODO: API CALL (SQL: INSERT INTO Clientes (id, ruc, nombre, tipo, estado) VALUES (?,?,?,?,?))
-    const clientList = JSON.parse(localStorage.getItem('tactiqa_clientes') || "[]");
-    clientList.push(clientSummary);
-    localStorage.setItem('tactiqa_clientes', JSON.stringify(clientList));
 }
 
 // =========================
@@ -146,45 +128,77 @@ function attachSubmit(formId, tipo){
     e.preventDefault();
     if(!form.reportValidity()) return;
 
+    // === CORRECCIÓN AQUÍ ===
+    // Intentamos buscar el botón de varias formas para no fallar
+    const btnSubmit = form.querySelector('button[type="submit"]') || form.querySelector('button');
+    let originalText = "Guardar";
+
+    // Solo intentamos cambiar el texto si el botón existe
+    if (btnSubmit) {
+        originalText = btnSubmit.textContent;
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "Procesando...";
+    }
+    // ========================
+
     const data = Object.fromEntries(new FormData(form).entries());
     Object.keys(data).forEach(k => { if(typeof data[k] === "string") data[k] = data[k].trim(); });
 
-    // TODO: API CALL (SQL: SELECT count(*) FROM Clientes WHERE ruc = ?)
+    // 1. Validar Duplicado en Nube
     const ruc = tipo === 'PN' ? data.pn_num_id : data.pj_ruc;
-    const existingClients = JSON.parse(localStorage.getItem('tactiqa_clientes') || "[]");
-    if(existingClients.some(c => c.ruc === ruc)) {
-        alert("⚠️ Este cliente ya está registrado.");
-        return;
-    }
-
-    const cliente = {
-      id: makeId(),
-      tipo, 
-      creadoEn: new Date().toISOString(),
-      data
-    };
-
-    // 1. Guardar cliente en SQL
-    const newUserObj = registerLoginUser(cliente, tipo);
-    registerInClientList(cliente, tipo);
     
-    // TODO: API CALL (Cache temporal para pasar el ID a la siguiente pantalla)
-    localStorage.setItem("tqa_cliente_draft", JSON.stringify(cliente));
+    try {
+        const existe = await checkRucEnServidor(ruc);
+        if(existe) {
+            alert("⚠️ Este cliente (RUC/Cédula) ya está registrado en la base de datos.");
+            if(btnSubmit) { // Restaurar botón
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = originalText;
+            }
+            return;
+        }
 
-    alert("✅ Registro exitoso. Procediendo a carga de información financiera.");
-
-    if (isLoggedStaff) {
-        window.location.href = `finanzas-pro.html?clientId=${cliente.id}`;
-    } else {
-        const newSession = {
-            email: newUserObj.email,
-            role: "CLIENTE",
-            name: newUserObj.name,
-            id: newUserObj.id,
-            loginTime: Date.now()
+        // 2. Preparar Objeto
+        const cliente = {
+          id: makeId(),
+          tipo, 
+          data
         };
-        localStorage.setItem('tqa_session', JSON.stringify(newSession));
-        window.location.href = "finanzas-cliente.html";
+
+        // 3. Enviar a AWS Lambda
+        await enviarDatosAlServidor(cliente, tipo);
+        
+        // Cache temporal
+        localStorage.setItem("tqa_cliente_draft", JSON.stringify(cliente));
+
+        alert("✅ Registro exitoso en la Nube.\n\nUsuario creado.");
+
+        // 4. Redirección
+        if (isLoggedStaff) {
+            window.location.href = `finanzas-pro.html?clientId=${cliente.id}`;
+        } else {
+            // Auto-login simulado
+            const email = tipo === 'PN' ? data.pn_email : data.pj_contacto_email;
+            const name = tipo === 'PN' ? `${data.pn_nombre} ${data.pn_apellido}` : data.pj_razon_social;
+            
+            const newSession = {
+                email: email,
+                role: "CLIENTE",
+                name: name,
+                id: cliente.id,
+                loginTime: Date.now()
+            };
+            localStorage.setItem('tqa_session', JSON.stringify(newSession));
+            window.location.href = "finanzas-cliente.html";
+        }
+
+    } catch (error) {
+        console.error(error);
+        // Si falló algo, restauramos el botón para que pueda intentar de nuevo
+        if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = originalText;
+        }
     }
   });
 }

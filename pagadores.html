@@ -35,7 +35,7 @@
     <div class="titlebar" style="display:flex; justify-content:space-between; align-items:center;">
       <h2>Gestión de Pagadores</h2>
       <div>
-          <button class="btn ghost small" onclick="manualSync()" style="color:#fff; border-color:rgba(255,255,255,0.4);">
+          <button class="btn ghost small" onclick="loadPayers()" style="color:#fff; border-color:rgba(255,255,255,0.4);">
               <i class="fa-solid fa-sync"></i> Sincronizar
           </button>
           <span class="badge" style="background:rgba(255,255,255,0.2); color:#fff; border:none; margin-left:10px;">
@@ -51,7 +51,8 @@
             <select id="filterStatus" class="filter-input" style="width: 200px; padding:10px; border:1px solid #ddd; border-radius:4px;">
                 <option value="ALL">Todos los Estados</option>
                 <option value="POR_REVISAR">⚠️ Pendiente Revisión</option>
-                <option value="ENVIADO_APROBADOR">✈️ En Aprobación</option>
+                <option value="EN_ANALISIS">📊 En Análisis</option>
+                <option value="EN_APROBACION">✈️ En Aprobación</option>
                 <option value="CALIFICADO">✅ Calificado</option>
             </select>
         </div>
@@ -126,6 +127,7 @@
     </div>
 </div>
 
+<script src="auth.js"></script>
 <script src="pagadores.js"></script>
 </body>
 </html>

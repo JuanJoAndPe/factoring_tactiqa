@@ -1,119 +1,110 @@
+/**
+ * GESTIÓN DE TAREAS - MESA UNIFICADA (CONECTADA A AWS)
+ */
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Obtener Sesión
+    // 1. Verificar Sesión
     const session = JSON.parse(localStorage.getItem('tqa_session'));
     if (!session) {
         window.location.href = 'index.html';
         return;
     }
 
+    // 2. Configurar Pantalla según Rol
     const role = session.role;
     document.getElementById('roleBadge').textContent = role;
     setupHeader(role);
-    loadTasks(role);
 
-    // Configurar títulos según rol
-    function setupHeader(role) {
-        const title = document.getElementById('pageTitle');
-        const sub = document.getElementById('pageSub');
-        
-        if (role === 'ANALISTA') {
-            title.textContent = "Mesa de Análisis";
-            sub.textContent = "Solicitudes pendientes de revisión técnica";
-        } else if (role === 'COMITE') {
-            title.textContent = "Comité de Crédito";
-            sub.textContent = "Solicitudes esperando resolución final";
-        }
+    // 3. Cargar Tareas REALES
+    loadRealTasks(role);
+});
+
+function setupHeader(role) {
+    const title = document.getElementById('pageTitle');
+    const sub = document.getElementById('pageSub');
+    
+    if (role === 'ANALISTA') {
+        title.textContent = "Mesa de Análisis";
+        sub.textContent = "Solicitudes pendientes de revisión técnica";
+    } else if (role === 'APROBADOR' || role === 'COMITE') {
+        title.textContent = "Comité de Crédito";
+        sub.textContent = "Solicitudes esperando resolución final";
     }
+}
 
-    // Cargar tareas simuladas
-    function loadTasks(role) {
-        const list = document.getElementById('tasksList');
-        list.innerHTML = '';
+async function loadRealTasks(role) {
+    const list = document.getElementById('tasksList');
+    list.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">🔄 Buscando pendientes en la nube...</td></tr>';
 
-        // TAREAS DEMO
-        const allTasks = [
-            {
-                id: 1,
-                client: "Importadora Andina S.A.",
-                ruc: "1790011223001",
-                type: "Factoring Nacional",
-                amount: "15,000.00",
-                date: "30/01/2026",
-                stage: "ANALISTA", // Tarea para analista
-                statusText: "⏳ Pendiente Análisis"
-            },
-            {
-                id: 2,
-                client: "Constructora del Pacífico",
-                ruc: "0990055443001",
-                type: "Línea de Crédito",
-                amount: "50,000.00",
-                date: "28/01/2026",
-                stage: "COMITE", // Tarea para comité
-                statusText: "⚖️ Esperando Resolución"
-            }
-        ];
-
-        // Filtrar tareas según el rol del usuario
-        let myTasks = [];
-        if (role === 'ADMIN') {
-            myTasks = allTasks; // Admin ve todo
-        } else {
-            myTasks = allTasks.filter(t => t.stage === role);
+    try {
+        // Determinamos a qué ruta llamar según el rol
+        let endpoint = '';
+        if (role === 'ANALISTA') endpoint = '/analista/dashboard';
+        else if (role === 'APROBADOR' || role === 'COMITE') endpoint = '/comite/dashboard';
+        else {
+            list.innerHTML = '<tr><td colspan="5" style="text-align:center;">Tu rol no tiene bandeja de entrada configurada.</td></tr>';
+            return;
         }
 
-        if (myTasks.length === 0) {
+        // LLAMADA A AWS
+        if (typeof API_URL === 'undefined') { console.error("Falta auth.js"); return; }
+        
+        const response = await fetch(`${API_URL}${endpoint}`);
+        const data = await response.json();
+
+        list.innerHTML = ''; // Limpiar loader
+
+        if (!data.success || !data.items || data.items.length === 0) {
             document.getElementById('emptyState').classList.remove('hidden');
             return;
         }
 
-        // Renderizar
-        myTasks.forEach(task => {
+        // Ocultar mensaje de vacío si hay datos
+        document.getElementById('emptyState').classList.add('hidden');
+
+        // Renderizar Tareas Reales
+        data.items.forEach(task => {
             const tr = document.createElement('tr');
             tr.className = 'task-row';
-            tr.onclick = () => openTask(task);
+            
+            // Configuración visual según tipo
+            const isAnalista = role === 'ANALISTA';
+            const borderClass = isAnalista ? 'status-risk' : 'status-com';
+            const icon = isAnalista ? 'fa-magnifying-glass-chart' : 'fa-gavel';
+            const btnText = isAnalista ? 'Analizar' : 'Resolver';
+            const valor = parseFloat(task.valor).toLocaleString('en-US', {style:'currency', currency:'USD'});
 
-            // Estilos dinámicos
-            let borderClass = task.stage === 'ANALISTA' ? 'status-risk' : 'status-com';
-            let icon = task.stage === 'ANALISTA' ? 'fa-magnifying-glass-chart' : 'fa-gavel';
-            let btnText = task.stage === 'ANALISTA' ? 'Analizar' : 'Resolver';
+            // Acción al hacer click
+            tr.onclick = () => {
+                // Redirigir al módulo correspondiente
+                if (task.tipo === 'PAGADOR') window.location.href = 'pagadores.html'; // Ahí verán el botón correspondiente a su rol
+                else if (task.tipo === 'OPERACION') window.location.href = 'cartera.html';
+            };
 
             tr.innerHTML = `
                 <td class="${borderClass}">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <div class="avatar">${task.client.substring(0,2)}</div>
+                        <div class="avatar">${task.detalle.substring(0,2).toUpperCase()}</div>
                         <div>
-                            <div style="font-weight:700; color:#2c3e50;">${task.client}</div>
-                            <div style="font-size:11px; color:#7f8c8d;">RUC: ${task.ruc}</div>
+                            <div style="font-weight:700; color:#2c3e50;">${task.detalle}</div>
+                            <div style="font-size:11px; color:#7f8c8d;">${task.sub_detalle || '---'}</div>
                         </div>
                     </div>
                 </td>
                 <td>
-                    <div style="font-size:13px; font-weight:600;">${task.type}</div>
-                    <div style="font-size:11px; color:#7f8c8d;">$${task.amount}</div>
+                    <div style="font-size:13px; font-weight:600;">${task.tipo}</div>
+                    <div style="font-size:11px; color:#7f8c8d;">${valor}</div>
                 </td>
-                <td style="font-size:13px; color:#555;">${task.date}</td>
-                <td><span class="badge warn" style="font-size:10px;">${task.statusText}</span></td>
+                <td style="font-size:13px; color:#555;">${new Date(task.fecha_creacion).toLocaleDateString()}</td>
+                <td><span class="badge warn" style="font-size:10px;">Pendiente</span></td>
                 <td style="text-align:right;">
                     <button class="btn ghost small"><i class="fa-solid ${icon}"></i> ${btnText}</button>
                 </td>
             `;
             list.appendChild(tr);
         });
-    }
 
-    function openTask(task) {
-        // Guardar contexto del cliente seleccionado
-        localStorage.setItem('tqa_cliente_draft', JSON.stringify({
-            tipo: 'PJ',
-            data: { pj_razon_social: task.client, pj_ruc: task.ruc }
-        }));
-
-        // Redirigir según el tipo de tarea
-        if (task.stage === 'ANALISTA') {
-            window.location.href = 'aprobador_analista.html';
-        } else if (task.stage === 'COMITE') {
-            window.location.href = 'aprobador_comite.html';
-        }
+    } catch (error) {
+        console.error(error);
+        list.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">Error de conexión con AWS.</td></tr>';
     }
-});
+}

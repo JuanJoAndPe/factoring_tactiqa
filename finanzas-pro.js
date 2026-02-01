@@ -40,24 +40,31 @@ async function extractDataFromPDF(file, mapType) {
 }
 
 ['fileBG', 'fileER'].forEach(id => {
-    document.getElementById(id).addEventListener('change', async (e) => {
-        if (e.target.files.length === 0) return;
-        
-        const file = e.target.files[0];
-        const type = id === 'fileBG' ? 'BG' : 'ER';
-        const statusId = id === 'fileBG' ? 'statusBG' : 'statusER';
-        const statusEl = document.getElementById(statusId);
-        statusEl.innerHTML = '<span class="status-loading">Procesando...</span>';
-
-        try {
-            const data = await extractDataFromPDF(file, type);
-            fillTable(data, type === 'BG' ? '#tableBG' : '#tableER');
-            statusEl.innerHTML = '<span class="status-success">✓ Datos extraídos</span>';
-        } catch (err) {
-            console.error(err);
-            statusEl.innerHTML = '<span style="color:red">Error al leer PDF</span>';
-        }
-    });
+    const el = document.getElementById(id); // 1. Buscamos el elemento y lo guardamos
+    
+    // 2. Solo continuamos si el elemento EXISTE (no es null)
+    if (el) {
+        el.addEventListener('change', async (e) => {
+            if (e.target.files.length === 0) return;
+            
+            const file = e.target.files[0];
+            const type = id === 'fileBG' ? 'BG' : 'ER';
+            const statusId = id === 'fileBG' ? 'statusBG' : 'statusER';
+            const statusEl = document.getElementById(statusId);
+            
+            // Protección extra: verificar si el elemento de status existe también
+            if(statusEl) statusEl.innerHTML = '<span class="status-loading">Procesando...</span>';
+    
+            try {
+                const data = await extractDataFromPDF(file, type);
+                fillTable(data, type === 'BG' ? '#tableBG' : '#tableER');
+                if(statusEl) statusEl.innerHTML = '<span class="status-success">✓ Datos extraídos</span>';
+            } catch (err) {
+                console.error(err);
+                if(statusEl) statusEl.innerHTML = '<span style="color:red">Error al leer PDF</span>';
+            }
+        });
+    }
 });
 
 function fillTable(data, tableId) {
