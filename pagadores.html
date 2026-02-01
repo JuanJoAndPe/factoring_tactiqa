@@ -15,6 +15,10 @@
     }
     .doc-check-item:hover { background: #fff; border-color: var(--accent); }
     .doc-label { font-size: 13px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 10px; }
+    
+    /* Estilo para enlace de ver documento */
+    .view-link { color: var(--primary); text-decoration: none; font-weight: 600; }
+    .view-link:hover { text-decoration: underline; }
   </style>
 </head>
 
@@ -88,7 +92,7 @@
         
         <div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
             <h3 style="color: var(--primary); margin:0;" id="modalTitle">Revisión Documental</h3>
-            <p style="font-size:12px; color:#666; margin-top:5px;">Verifique los requisitos para enviar a aprobación.</p>
+            <p style="font-size:12px; color:#666; margin-top:5px;">Cargue los documentos digitales para el expediente.</p>
         </div>
 
         <div style="background: #f0f4f8; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
@@ -99,20 +103,52 @@
             </div>
         </div>
 
-        <label style="margin-bottom: 8px; display:block;">Lista de Verificación:</label>
-        <div id="docChecklist">
-            <div class="doc-check-item">
-                <div class="doc-label"><i class="fa-solid fa-file-pdf"></i> Constitución / Nombramiento</div>
-                <input type="checkbox" class="doc-check" style="width: 20px; height: 20px;">
+        <label style="margin-bottom: 8px; display:block;">Expediente Digital:</label>
+        
+        <div id="docChecklist" style="max-height: 250px; overflow-y: auto;">
+            
+            <div class="doc-check-item" style="flex-direction: column; align-items: flex-start;">
+                <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
+                    <div class="doc-label"><i class="fa-solid fa-id-card"></i> RUC Actualizado</div>
+                    <a id="link_doc_ruc" href="#" target="_blank" class="view-link" style="font-size:11px; display:none;">Ver Documento</a>
+                </div>
+                <div style="display:flex; gap:5px; width:100%;">
+                    <input type="file" id="file_ruc" style="font-size:11px; flex:1;">
+                    <button id="btn_file_ruc" class="btn small primary" 
+                        onclick="subirDocEspecifico('doc_ruc', 'file_ruc')">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </button>
+                </div>
             </div>
-            <div class="doc-check-item">
-                <div class="doc-label"><i class="fa-solid fa-id-card"></i> RUC Actualizado</div>
-                <input type="checkbox" class="doc-check" style="width: 20px; height: 20px;">
+
+            <div class="doc-check-item" style="flex-direction: column; align-items: flex-start;">
+                <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
+                    <div class="doc-label"><i class="fa-solid fa-chart-line"></i> Buró de Crédito</div>
+                    <a id="link_doc_buro_credito" href="#" target="_blank" class="view-link" style="font-size:11px; display:none;">Ver Documento</a>
+                </div>
+                <div style="display:flex; gap:5px; width:100%;">
+                    <input type="file" id="file_buro" style="font-size:11px; flex:1;">
+                    <button id="btn_file_buro" class="btn small primary" 
+                        onclick="subirDocEspecifico('doc_buro_credito', 'file_buro')">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </button>
+                </div>
             </div>
-            <div class="doc-check-item">
-                <div class="doc-label"><i class="fa-solid fa-chart-line"></i> Buró de Crédito</div>
-                <input type="checkbox" class="doc-check" style="width: 20px; height: 20px;">
+
+            <div class="doc-check-item" style="flex-direction: column; align-items: flex-start;">
+                <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
+                    <div class="doc-label"><i class="fa-solid fa-folder-open"></i> Otros Docs</div>
+                    <a id="link_doc_otros" href="#" target="_blank" class="view-link" style="font-size:11px; display:none;">Ver Documento</a>
+                </div>
+                <div style="display:flex; gap:5px; width:100%;">
+                    <input type="file" id="file_otros" style="font-size:11px; flex:1;">
+                    <button id="btn_file_otros" class="btn small primary" 
+                        onclick="subirDocEspecifico('doc_otros', 'file_otros')">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </button>
+                </div>
             </div>
+
         </div>
 
         <label style="margin-top: 15px;">Observaciones:</label>
@@ -128,6 +164,6 @@
 </div>
 
 <script src="auth.js"></script>
-<script src="pagadores.js"></script>
+<script src="upload.js"></script> <script src="pagadores.js"></script>
 </body>
 </html>

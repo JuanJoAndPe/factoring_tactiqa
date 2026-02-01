@@ -211,3 +211,25 @@ function filtrarTablaLocal() {
 
     renderTable(filtrados);
 }
+
+// === FUNCIÓN PUENTE PARA SUBIR ARCHIVOS ===
+function subirDocEspecifico(columnaBD, inputId) {
+    if (!currentPayerId) {
+        alert("Error: No se ha seleccionado ningún pagador.");
+        return;
+    }
+
+    // Buscamos el RUC en la lista local para usarlo de nombre de carpeta
+    const pagador = allPayers.find(p => p.id === currentPayerId);
+    const rucCarpeta = pagador ? pagador.ruc : 'DESCONOCIDO';
+
+    // Llamamos a la función maestra de upload.js
+    // uploadFile(inputId, carpeta, tabla, idFila, columnaDondeGuardar)
+    uploadFile(
+        inputId, 
+        `PAGADORES/${rucCarpeta}`, 
+        'Pagadores', 
+        currentPayerId, 
+        columnaBD
+    );
+}
