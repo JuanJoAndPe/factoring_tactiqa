@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TACTIQA | Análisis de Riesgo</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    /* Estilos específicos para el analista */
+    .readonly-field { background: #fafafa; color: #444; pointer-events: none; border: 1px solid #eee; font-weight: 500;}
+    .recommendation-zone { 
+        background: #fff; border-top: 4px solid #f39c12; /* Color Naranja para Análisis */
+        padding: 30px 20px; margin-top: 30px; box-shadow: 0 -10px 20px rgba(0,0,0,0.03);
+    }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: #fff; width: 500px; max-width: 90%; border-radius: 8px; padding: 20px; }
+  </style>
+</head>
+
+<body>
+<div class="bg"></div>
+
+<main class="view active">
+  <section class="card form-card">
+
+    <div class="brand-row">
+      <img src="logo.jpg" alt="TACTIQA" onerror="this.style.display='none'"> 
+      <div style="flex:1;">
+        <div class="brand-title">Mesa de Análisis</div>
+        <div class="brand-sub">Precalificación y Revisión Técnica</div>
+      </div>
+      <button class="btn ghost small" id="btnViewDocs">
+        <i class="fa-solid fa-folder-open"></i> Revisar Documentos y Operaciones
+      </button>
+    </div>
+
+    <div class="titlebar"><h2>1. Datos del Sujeto de Crédito</h2></div>
+    <div class="pad" style="padding-top:15px;">
+        <div class="grid two">
+            <div class="col">
+                <label>Razón Social / Nombre</label>
+                <input type="text" id="viewEmpresa" class="readonly-field" readonly>
+            </div>
+            <div class="col">
+                <label>Identificación (RUC)</label>
+                <input type="text" id="viewRuc" class="readonly-field" readonly>
+            </div>
+        </div>
+        <div style="margin-top:10px;">
+             <label>Pagadores Vinculados (Factoring)</label>
+             <input type="text" id="viewPagadores" class="readonly-field" value="Varios (Ver detalle en documentos)" readonly>
+        </div>
+    </div>
+
+    <div class="titlebar"><h2>2. Indicadores de Sistema</h2></div>
+    <div class="pad" style="padding-top:15px;">
+        <div class="grid two">
+            <div class="col">
+                <label>Score Buró</label>
+                <input type="text" id="viewScore" class="readonly-field" readonly>
+            </div>
+            <div class="col">
+                <label>Endeudamiento</label>
+                <input type="text" id="viewEndeudamiento" class="readonly-field" readonly>
+            </div>
+            <div class="col">
+                <label>Cumplimiento Legal</label>
+                <input type="text" id="viewJudicial" class="readonly-field" readonly>
+            </div>
+            <div class="col">
+                <label>Cumplimiento SRI</label>
+                <input type="text" id="viewSri" class="readonly-field" readonly>
+            </div>
+        </div>
+    </div>
+
+    <div class="recommendation-zone">
+        <h2 style="color:#d35400; font-size:20px; margin-top:0; margin-bottom:20px;">
+            <i class="fa-solid fa-magnifying-glass-chart"></i> Dictamen Técnico
+        </h2>
+        
+        <div style="background:#fffaf0; padding:20px; border:1px solid #fce8b2; border-radius:8px;">
+            <label class="req">Recomendación para el Comité</label>
+            <select id="selectRecomendacion" style="font-weight:600; color:#d35400;">
+                <option value="" selected disabled>-- Seleccione su criterio --</option>
+                <option value="FAVORABLE">RECOMENDACIÓN FAVORABLE (Aprobar)</option>
+                <option value="OBSERVADO">RECOMENDACIÓN CON OBSERVACIONES (Riesgo Medio)</option>
+                <option value="DESFAVORABLE">RECOMENDACIÓN DESFAVORABLE (Negar)</option>
+            </select>
+
+            <label class="req" style="margin-top:15px;">Informe Técnico Detallado</label>
+            <textarea id="txtAnalisis" placeholder="Describa el análisis del cliente, calidad de los pagadores y validación de facturas..." rows="5"></textarea>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn primary full" type="button" id="btnSubmitAnalysis" style="padding:15px; background:#e67e22;">
+            Enviar Informe a Comité
+        </button>
+    </div>
+
+  </section>
+</main>
+
+<div id="docsModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="brand-row" style="border:none; padding:0 0 10px 0;">
+            <div class="brand-title">Expediente Digital</div>
+        </div>
+        <div id="docsList"></div> <button class="btn ghost small" onclick="document.getElementById('docsModal').classList.remove('active')" style="margin-top:15px; width:100%;">Cerrar</button>
+    </div>
+</div>
+
+<script src="aprobador.js"></script>
+</body>
+</html>
