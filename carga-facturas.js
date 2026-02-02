@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initStaffMode();
     }
 
-    cargarPagadoresDesdeMemoria();
+    cargarPagadoresDesdeBD();
     
     const zona = document.getElementById('zonaCarga');
     if(zona) {
@@ -53,17 +53,46 @@ function initStaffMode() {
     }
 }
 
-function cargarPagadoresDesdeMemoria() {
+async function cargarPagadoresDesdeBD() {
     const select = document.getElementById('selectPagador');
     if (!select) return;
 
-    // TODO: API CALL (SQL: SELECT * FROM Pagadores)
-    const pagadoresGuardados = JSON.parse(localStorage.getItem('db_pagadores')) || [];
+    try {
+        // Intentar cargar de la API
+        const res = await fetch(`${API_URL}/pagadores`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.items) {
+                // Limpiar opciones existentes (excepto la primera)
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+                
+                data.items.forEach(pagador => {
+                    const option = document.createElement('option');
+                    option.value = pagador.ruc || pagador.RUC;
+                    option.textContent = `${pagador.nombre || pagador.RazonSocial} (${pagador.ruc || pagador.RUC})`;
+                    select.appendChild(option);
+                });
+                return;
+            }
+        }
+    } catch (e) {
+        console.log("Error al cargar pagadores de API, usando datos locales:", e.message);
+    }
 
+    // Fallback a datos locales
+    const pagadoresGuardados = JSON.parse(localStorage.getItem('db_pagadores')) || [];
+    
+    // Limpiar opciones existentes (excepto la primera)
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    
     pagadoresGuardados.forEach(pagador => {
         const option = document.createElement('option');
-        option.value = pagador.ruc; 
-        option.textContent = `${pagador.razonSocial} (${pagador.ruc})`; 
+        option.value = pagador.ruc;
+        option.textContent = `${pagador.razonSocial} (${pagador.ruc})`;
         select.appendChild(option);
     });
 }
@@ -290,13 +319,6 @@ async function guardarTodo() {
 
 
     // 6. Guardar en Base de Datos
-    // TODO: API CALL (SQL: Transaction START)
-    // 1. INSERT INTO Operaciones (id, fecha, cliente_id, total, estado) VALUES (...)
-    // 2. INSERT INTO DetalleFacturas (operacion_id, clave_acceso, monto, estado_sri) VALUES (...) para cada fila
-    // 3. API CALL (Subir PDFs a S3 y guardar URL en tabla Documentos)
-    // TODO: API CALL (SQL: Transaction COMMIT)
-    
-    // 6. Guardar en Base de Datos (AWS + MySQL)
     try {
         if (typeof API_URL === 'undefined') throw new Error("API_URL no definido (auth.js).");
 
@@ -360,7 +382,7 @@ async function guardarTodo() {
             throw new Error(detData.message || "No se pudo guardar el detalle de facturas.");
         }
 
-        // 6.4 (Opcional) Guardar un link “resumen” en Operaciones.doc_factura_pdf (primer PDF)
+        // 6.4 (Opcional) Guardar un link "resumen" en Operaciones.doc_factura_pdf (primer PDF)
         if (pdfs[0]?.publicUrl) {
             await fetch(`${API_URL}/files/save-link`, {
                 method: 'POST',
@@ -375,7 +397,7 @@ async function guardarTodo() {
         const dbCartera = JSON.parse(localStorage.getItem('db_cartera_lotes')) || [];
         dbCartera.push(nuevoLote);
         localStorage.setItem('db_cartera_lotes', JSON.stringify(dbCartera));
-        alert("⚠️ Se subieron documentos a S3, pero no se pudo guardar en BD. Se guardó temporalmente en el navegador.Detalle: " + e.message);
+        alert("⚠️ Se subieron documentos a S3, pero no se pudo guardar en BD. Se guardó temporalmente en el navegador.\nDetalle: " + e.message);
         return;
     }
 

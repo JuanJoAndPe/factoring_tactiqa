@@ -23,6 +23,20 @@
     /* Barra de progreso de vencimiento en la tabla */
     .days-bar { height: 4px; background: #eee; width: 80px; border-radius: 2px; overflow: hidden; margin-top: 4px; }
     .days-fill { height: 100%; background: #ccc; }
+    
+    /* Estilos para estado de carga */
+    .loading-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255,255,255,0.8);
+        z-index: 100;
+        justify-content: center;
+        align-items: center;
+    }
   </style>
 </head>
 
@@ -42,6 +56,12 @@
 
     <div class="titlebar">
       <h2>Cartera Vigente</h2>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button class="btn ghost small" id="refreshBtnManual" onclick="refreshPortfolio()" title="Actualizar datos">
+          <i class="fa-solid fa-refresh"></i>
+        </button>
+        <span style="font-size: 12px; color: #666;">Datos en tiempo real</span>
+      </div>
     </div>
 
     <div class="pad" style="margin-top: 20px;">
@@ -50,7 +70,7 @@
             <div class="kpi-card-mini">
                 <span class="kpi-label">Total Vigente</span>
                 <span class="kpi-value" id="kpiTotal">$0.00</span>
-                <span class="kpi-sub">Capital expuesto</span>
+                <span class="kpi-sub">Cargando...</span>
             </div>
             <div class="kpi-card-mini" style="border-left: 3px solid #27ae60;">
                 <span class="kpi-label">Por Vencer (0-15 días)</span>
@@ -79,7 +99,13 @@
             </select>
         </div>
 
-        <div class="table-wrap">
+        <div class="table-wrap" style="position: relative;">
+            <div class="loading-overlay" id="loadingOverlay">
+                <div style="text-align: center;">
+                    <div style="display:inline-block; width:40px; height:40px; border:4px solid #f3f3f3; border-top:4px solid #3498db; border-radius:50%; animation: spin 1s linear infinite;"></div>
+                    <p style="margin-top:10px; color:#666;">Actualizando datos...</p>
+                </div>
+            </div>
             <table class="fin-table" id="portfolioTable">
                 <thead>
                     <tr>
@@ -93,7 +119,13 @@
                     </tr>
                 </thead>
                 <tbody id="portfolioBody">
-                    </tbody>
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:40px; color:#666;">
+                            <div style="display:inline-block; width:30px; height:30px; border:3px solid #f3f3f3; border-top:3px solid #3498db; border-radius:50%; animation: spin 1s linear infinite;"></div>
+                            <p style="margin-top:10px;">Cargando datos de cartera...</p>
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>
@@ -102,7 +134,7 @@
         <button class="btn ghost" onclick="window.location.href='menu.html'">
             <i class="fa-solid fa-arrow-left icon"></i> Volver al Menú
         </button>
-        <button class="btn primary" onclick="alert('Exportando reporte de cartera...')">
+        <button class="btn primary" onclick="exportToCSV()" id="exportBtn">
             <i class="fa-solid fa-file-csv icon"></i> Exportar
         </button>
     </div>
@@ -114,13 +146,99 @@
     <div class="modal-box" style="background: #fff; width: 400px; padding: 20px; border-radius: 8px;">
         <h3>Registrar Gestión</h3>
         <p style="font-size:13px; color:#666; margin-bottom:10px;">ID Operación: <strong id="modalOpId">---</strong></p>
-        <textarea placeholder="Ej: Se llamó al pagador, confirman pago para el viernes..." style="width:100%; height:80px; padding:10px; border:1px solid #ddd;"></textarea>
+        <textarea id="gestionText" placeholder="Ej: Se llamó al pagador, confirman pago para el viernes..." style="width:100%; height:80px; padding:10px; border:1px solid #ddd;"></textarea>
         <div style="margin-top:15px; display:flex; justify-content:flex-end; gap:10px;">
             <button class="btn ghost small" onclick="document.getElementById('gestionModal').style.display='none'">Cancelar</button>
-            <button class="btn primary small" onclick="alert('Gestión guardada'); document.getElementById('gestionModal').style.display='none'">Guardar</button>
+            <button class="btn primary small" onclick="saveGestion()">Guardar</button>
         </div>
     </div>
 </div>
+
+<script>
+    // Función para mostrar/ocultar loading
+    function toggleLoading(show) {
+        const overlay = document.getElementById('loadingOverlay');
+        const exportBtn = document.getElementById('exportBtn');
+        const refreshBtn = document.getElementById('refreshBtnManual');
+        
+        if (overlay) overlay.style.display = show ? 'flex' : 'none';
+        if (exportBtn) exportBtn.disabled = show;
+        if (refreshBtn) refreshBtn.disabled = show;
+    }
+    
+    // Función de exportación
+    async function exportToCSV() {
+        try {
+            toggleLoading(true);
+            
+            const session = JSON.parse(localStorage.getItem('tqa_session'));
+            const response = await fetch(`${API_URL}/operaciones/export`, {
+                headers: {
+                    'Authorization': `Bearer ${session.token || ''}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `cartera_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else {
+                alert('Error al exportar datos');
+            }
+        } catch (error) {
+            console.error('Error en exportación:', error);
+            alert('No se pudo exportar los datos');
+        } finally {
+            toggleLoading(false);
+        }
+    }
+    
+    // Función para guardar gestión
+    async function saveGestion() {
+        const opId = document.getElementById('modalOpId').textContent;
+        const texto = document.getElementById('gestionText').value;
+        
+        if (!texto.trim()) {
+            alert('Ingrese un texto para la gestión');
+            return;
+        }
+        
+        try {
+            const session = JSON.parse(localStorage.getItem('tqa_session'));
+            const response = await fetch(`${API_URL}/gestiones`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.token || ''}`
+                },
+                body: JSON.stringify({
+                    operacion_id: opId,
+                    texto: texto,
+                    usuario_id: session.id,
+                    tipo: 'COBRANZA'
+                })
+            });
+            
+            if (response.ok) {
+                alert('Gestión registrada correctamente');
+                document.getElementById('gestionModal').style.display = 'none';
+                document.getElementById('gestionText').value = '';
+            } else {
+                alert('Error al guardar la gestión');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error de conexión');
+        }
+    }
+</script>
 
 <script src="cartera.js"></script>
 </body>
