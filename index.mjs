@@ -1,5 +1,5 @@
 import mysql from 'mysql2/promise';
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // CONFIGURACIÓN DE BASE DE DATOS
@@ -568,6 +568,8 @@ else if (path === '/pagadores' && method === 'POST') {
             result = { success: true, uploadUrl, publicUrl, key };
         }
 
+        
+
         // === RUTA: CREAR OPERACIÓN ===
         else if (path === '/operaciones' && method === 'POST') {
             const o = body;
@@ -657,6 +659,36 @@ else if (path === '/pagadores' && method === 'POST') {
             } catch (dbError) {
                 console.error('Error en save-link:', dbError);
                 throw new Error(`Error al guardar en BD: ${dbError.message}`);
+            }
+        }
+
+        // === NUEVA RUTA: OBTENER DETALLE DE DOCUMENTOS DE UNA OPERACIÓN ===
+        else if (path === '/operaciones/documentos' && method === 'GET') {
+            const opId = event.queryStringParameters?.id;
+            
+            if (!opId) {
+                return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: "ID requerido" }) };
+            }
+
+            try {
+                // 1. Buscar Facturas Individuales (DetalleFacturas)
+                // Asegúrate que los nombres de columnas coincidan con tu BD (url_pdf, clave_acceso, etc.)
+                const [facturas] = await pool.execute(
+                    'SELECT id, clave_acceso, monto, url_pdf, estado_sri FROM DetalleFacturas WHERE operacion_id = ?', 
+                    [opId]
+                );
+
+                // 2. (Opcional) Buscar otros documentos adjuntos si tienes tabla 'Documentos'
+                // const [otrosDocs] = await pool.execute('SELECT * FROM Documentos WHERE referencia_id = ?', [opId]);
+
+                result = { 
+                    success: true, 
+                    facturas: facturas, 
+                    otros_documentos: [] // Aquí irían los otrosDocs si implementas esa tabla
+                };
+            } catch (error) {
+                console.error(error);
+                return { statusCode: 500, headers, body: JSON.stringify({ success: false, error: error.message }) };
             }
         }
 

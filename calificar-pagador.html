@@ -205,7 +205,7 @@
   <script src="auth.js"></script>
   <script src="upload.js"></script>
   <script>
-    // Configuración API - IMPORTANTE: Definir API_URL si no está en auth.js
+    // Configuración API
     if (typeof API_URL === 'undefined') {
         const API_URL = 'https://prtjv5sj7h.execute-api.us-east-2.amazonaws.com/default';
     }
@@ -214,22 +214,16 @@
         renderizarTabla();
     });
 
-    // ==========================================
     // LÓGICA DE VISUALIZACIÓN (MODAL)
-    // ==========================================
     function verDocumento(nombreArchivo, tipoDoc, ruc) {
         if(!nombreArchivo || nombreArchivo === 'null') return;
-
-        // Actualizar datos del modal
         document.getElementById('visorTitulo').textContent = tipoDoc === 'RUC' ? 'Copia de RUC' : 'Historial de CXC (Interno)';
         document.getElementById('visorSubtitulo').textContent = `Pagador RUC: ${ruc}`;
         document.getElementById('visorArchivo').textContent = nombreArchivo;
         
-        // Cambiar icono según tipo
         const iconContainer = document.querySelector('.pdf-placeholder-icon');
         iconContainer.textContent = tipoDoc === 'RUC' ? '📄' : '📊';
 
-        // Mostrar
         document.getElementById('visorModal').classList.add('active');
     }
 
@@ -237,14 +231,11 @@
         document.getElementById('visorModal').classList.remove('active');
     }
 
-    // Cerrar al dar click fuera (backdrop)
     document.getElementById('visorModal').addEventListener('click', (e) => {
         if(e.target.id === 'visorModal') cerrarVisor();
     });
 
-    // ==========================================
-    // LÓGICA DE UI (INPUTS ARCHIVOS)
-    // ==========================================
+    // UI (ARCHIVOS)
     function updateFileStatus(input, statusId) {
         const label = document.getElementById(statusId);
         const textDiv = input.parentElement.querySelector('.upload-text');
@@ -253,7 +244,7 @@
             label.textContent = "✅ Listo";
             label.classList.add('uploaded');
             let name = input.files[0].name;
-            if(name.length > 20) name = name.substring(0,18) + "..."; // Truncar nombre
+            if(name.length > 20) name = name.substring(0,18) + "..."; 
             textDiv.textContent = name;
             textDiv.style.color = "#2a9d8f";
         } else {
@@ -264,10 +255,7 @@
         }
     }
 
-    // ==========================================
-    // LÓGICA DE DATOS (CRUD)
-    // ==========================================
-    
+    // CRUD PAGADOR (ACTUALIZADO)
     async function guardarPagador() {
         const rucInput = document.getElementById('nuevoRuc');
         const nombreInput = document.getElementById('nuevoNombre');
@@ -282,13 +270,12 @@
         if (!fileRuc.files || fileRuc.files.length === 0) { alert("Debe adjuntar certificado de RUC"); return; }
         if (!fileCXC.files || fileCXC.files.length === 0) { alert("Debe adjuntar historial interno de CXC"); return; }
 
-        if (typeof uploadFile !== 'function' || typeof API_URL === 'undefined') {
-            alert("❌ Falta upload.js o API_URL. Asegúrate de incluir auth.js y upload.js.");
+        if (typeof uploadFile !== 'function') {
+            alert("❌ Falta upload.js");
             return;
         }
 
         const session = (typeof getSession === 'function') ? getSession() : JSON.parse(localStorage.getItem('tqa_session') || "null");
-        const clienteAsociado = session?.id || null;
 
         // Subir a S3
         const folder = `PAGADORES/${ruc}/CALIFICACION/${Date.now()}`;
@@ -304,64 +291,53 @@
             return;
         }
 
-        // Guardar en MySQL (Pagadores + links)
+        // Guardar en MySQL 
         try {
-            // 1) Crear/actualizar pagador con método PUT para actualización si existe
+            // CAMBIO: ESTADO 'EN_REVISION'
             const res = await fetch(`${API_URL}/pagadores`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ruc: ruc,
                     nombre: nombre,
-                    estado: 'ACTIVO',
-                    // Si la API necesita estos campos adicionales
+                    estado_calificacion: 'EN_REVISION', // <--- CAMBIO: Va directo al Operativo
                     doc_ruc: docRucUp.publicUrl,
                     doc_otros: docCxcUp.publicUrl,
-                    actualizar_si_existe: true // Indicador para actualizar si existe
+                    actualizar_si_existe: true 
                 })
             });
             
             if (!res.ok) {
                 if (res.status === 409) {
-                    // Pagador ya existe, preguntar si desea actualizar
-                    const actualizar = confirm("⚠️ Este pagador ya existe en la base de datos. ¿Desea actualizar la información y documentos?");
-                    if (!actualizar) {
-                        alert("Operación cancelada. Los documentos ya fueron subidos a S3.");
-                        return;
-                    }
+                    const actualizar = confirm("⚠️ Pagador ya existe. ¿Desea actualizar y enviar a revisión nuevamente?");
+                    if (!actualizar) return;
                     
-                    // Intentar actualizar con PUT
                     const updateRes = await fetch(`${API_URL}/pagadores/${ruc}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             nombre: nombre,
-                            estado: 'ACTIVO',
+                            estado_calificacion: 'EN_REVISION', // Reactivamos la revisión
                             doc_ruc: docRucUp.publicUrl,
                             doc_otros: docCxcUp.publicUrl
                         })
                     });
                     
-                    if (!updateRes.ok) {
-                        throw new Error(`Error al actualizar pagador: ${updateRes.status}`);
-                    }
-                    
-                    alert("✅ Pagador actualizado correctamente.");
+                    if (!updateRes.ok) throw new Error("Error al actualizar pagador");
+                    alert("✅ Pagador actualizado y enviado a revisión.");
                     
                 } else {
                     const errorData = await res.json();
-                    throw new Error(errorData.message || `Error ${res.status}: ${res.statusText}`);
+                    throw new Error(errorData.message || `Error ${res.status}`);
                 }
             } else {
-                const data = await res.json();
-                alert("✅ Pagador creado correctamente.");
+                alert("✅ Pagador creado y enviado a revisión.");
             }
 
         } catch (e) {
             console.error(e);
-            // fallback local
+            // Fallback local
             let db = JSON.parse(localStorage.getItem('db_pagadores')) || [];
-            // Eliminar si ya existe
             db = db.filter(p => p.ruc !== ruc);
             db.push({ 
                 ruc: ruc, 
@@ -371,7 +347,7 @@
                 fecha: new Date().toLocaleDateString() 
             });
             localStorage.setItem('db_pagadores', JSON.stringify(db));
-            alert("⚠️ Se subió a S3, pero hubo un problema con la BD. Se guardó temporalmente en el navegador.\nDetalle: " + e.message);
+            alert("⚠️ Se guardó localmente (Error BD: " + e.message + ")");
             return;
         }
 
@@ -398,21 +374,18 @@
         tbody.innerHTML = "";
 
         try {
-            // Cargar de la API
             const res = await fetch(`${API_URL}/pagadores`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.success && data.items) {
-                    // Usar datos de API
                     mostrarPagadoresEnTabla(data.items, filtro);
                     return;
                 }
             }
         } catch (e) {
-            console.log("Error al cargar de API, usando datos locales:", e.message);
+            console.log("Offline mode");
         }
 
-        // Fallback a datos locales
         let db = JSON.parse(localStorage.getItem('db_pagadores')) || [];
         mostrarPagadoresEnTabla(db, filtro);
     }
@@ -427,7 +400,7 @@
             db = db.filter(p => 
                 (p.ruc && p.ruc.toLowerCase().includes(f)) || 
                 (p.razonSocial && p.razonSocial.toLowerCase().includes(f)) ||
-                (p.nombre && p.nombre.toLowerCase().includes(f)) // Para datos de API
+                (p.nombre && p.nombre.toLowerCase().includes(f))
             );
         }
 
@@ -437,7 +410,6 @@
         }
         empty.style.display = 'none';
 
-        // Ordenar por fecha (más reciente primero)
         const dbOrdenado = [...db].sort((a, b) => {
             const fechaA = a.fecha || a.created_at || '0';
             const fechaB = b.fecha || b.created_at || '0';
@@ -447,13 +419,11 @@
         dbOrdenado.forEach((p) => {
             const tr = document.createElement('tr');
             
-            // Obtener valores según estructura (API o local)
             const ruc = p.ruc || p.RUC || 'N/A';
             const nombre = p.razonSocial || p.nombre || p.RazonSocial || 'N/A';
             const docRuc = p.docRuc || p.doc_ruc || null;
             const docCXC = p.docCXC || p.doc_otros || null;
             
-            // Botones de acción para visualizar
             const btnRuc = docRuc 
                 ? `<button class="btn-icon" title="Ver RUC" onclick="verDocumento('${docRuc}', 'RUC', '${ruc}')">📄</button>` 
                 : `<button class="btn-icon disabled" title="Sin documento">📄</button>`;
@@ -475,27 +445,14 @@
     }
 
     async function eliminarPagador(rucAEliminar) {
-        if(!confirm("¿Seguro que desea eliminar este pagador del historial?")) return;
-        
+        if(!confirm("¿Seguro que desea eliminar este pagador?")) return;
         try {
-            // Intentar eliminar de la API
-            const res = await fetch(`${API_URL}/pagadores/${rucAEliminar}`, {
-                method: 'DELETE'
-            });
-            
-            if (!res.ok && res.status !== 404) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || `Error ${res.status}`);
-            }
-        } catch (e) {
-            console.log("Error al eliminar de API, eliminando localmente:", e.message);
-        }
+            await fetch(`${API_URL}/pagadores/${rucAEliminar}`, { method: 'DELETE' });
+        } catch (e) { console.log("Eliminando local"); }
         
-        // Eliminar de localStorage como fallback
         let db = JSON.parse(localStorage.getItem('db_pagadores')) || [];
         db = db.filter(p => p.ruc !== rucAEliminar);
         localStorage.setItem('db_pagadores', JSON.stringify(db));
-        
         renderizarTabla(document.getElementById('inputBusqueda').value);
     }
 

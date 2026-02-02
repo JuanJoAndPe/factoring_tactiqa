@@ -1,6 +1,11 @@
 // Configuración PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+// Aseguramos que API_URL esté definida (por si auth.js no cargó antes)
+if (typeof API_URL === 'undefined') {
+    window.API_URL = 'https://prtjv5sj7h.execute-api.us-east-2.amazonaws.com/default';
+}
+
 const MAP_BG = { "ACTIVO CORRIENTE": "101", "ACTIVO NO CORRIENTE": "102", "INVENTARIOS": "10103", "ACTIVO": "1", "PASIVO CORRIENTE": "201", "PASIVO NO CORRIENTE": "202", "PASIVO": "2", "PATRIMONIO NETO": "3", "RESULTADOS DEL EJERCICIO": "307" };
 const MAP_ER = { "INGRESOS DE ACTIVIDADES ORDINARIAS": "401", "GANANCIA BRUTA": "402", "OTROS INGRESOS": "403", "COSTO DE VENTAS Y PRODUCCIÓN": "501", "GASTOS FINANCIEROS":"50203", "GANANCIA ANTES DE IMPUESTOS": "602", "IMPUESTO A LA RENTA CAUSADO": "603", "GANANCIA NETA DEL PERIODO": "707" };
 
@@ -40,9 +45,7 @@ async function extractDataFromPDF(file, mapType) {
 }
 
 ['fileBG', 'fileER'].forEach(id => {
-    const el = document.getElementById(id); // 1. Buscamos el elemento y lo guardamos
-    
-    // 2. Solo continuamos si el elemento EXISTE (no es null)
+    const el = document.getElementById(id);
     if (el) {
         el.addEventListener('change', async (e) => {
             if (e.target.files.length === 0) return;
@@ -52,7 +55,6 @@ async function extractDataFromPDF(file, mapType) {
             const statusId = id === 'fileBG' ? 'statusBG' : 'statusER';
             const statusEl = document.getElementById(statusId);
             
-            // Protección extra: verificar si el elemento de status existe también
             if(statusEl) statusEl.innerHTML = '<span class="status-loading">Procesando...</span>';
     
             try {
@@ -78,7 +80,7 @@ function fillTable(data, tableId) {
     });
 }
 
-// === LÓGICA DE GUARDADO Y REDIRECCIÓN ===
+// === LÓGICA DE GUARDADO Y REDIRECCIÓN MODIFICADA ===
 document.getElementById('btnSave').addEventListener('click', () => {
     const data = { bg: {}, er: {} };
 
@@ -107,28 +109,45 @@ document.getElementById('btnSave').addEventListener('click', () => {
     const clientId = urlParams.get('clientId');
 
     if (clientId) {
+        // 1. Guardado Local (Backup y UI)
         const clientes = JSON.parse(localStorage.getItem('tactiqa_clientes') || "[]");
         const clienteIndex = clientes.findIndex(c => c.id === clientId);
         if (clienteIndex >= 0) {
-            clientes[clienteIndex].estado = "Pendiente"; 
-            // TODO: API CALL (SQL: UPDATE Clientes SET estado = 'PENDIENTE_ANALISIS' WHERE id = ?)
+            clientes[clienteIndex].estado = "EN_REVISION"; // Actualización visual local
             localStorage.setItem('tactiqa_clientes', JSON.stringify(clientes));
         }
-        
-        // TODO: API CALL (SQL: INSERT INTO AnalisisFinanciero (cliente_id, kpis_json) VALUES (?, ?))
         localStorage.setItem(`tqa_financial_kpis_${clientId}`, JSON.stringify(kpis));
+
+        // 2. CONEXIÓN A BD: Actualizar estado a 'EN_REVISION'
+        // Esto hace que aparezca en la bandeja del Operativo
+        if (typeof API_URL !== 'undefined') {
+            console.log("Enviando cliente a revisión:", clientId);
+            fetch(`${API_URL}/clientes/${clientId}`, {
+                method: 'PUT', // Asegúrate que tu API soporte PUT para updates
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    estado_proceso: 'EN_REVISION' // <--- CAMBIO CLAVE PARA TU BASE DE DATOS
+                })
+            }).then(res => {
+                if(res.ok) console.log("✅ Cliente enviado a operaciones (DB actualizada)");
+                else console.warn("⚠️ No se pudo actualizar estado en DB, pero se guardó localmente.");
+            }).catch(err => console.error("Error conectando a API:", err));
+        }
     } else {
         localStorage.setItem('tqa_financial_kpis', JSON.stringify(kpis));
     }
 
-    alert("✅ Información guardada y enviada a aprobación.");
+    alert("✅ Información guardada. El expediente ha sido enviado a Operaciones para revisión.");
 
+    // Redirección inteligente según rol
     const session = JSON.parse(localStorage.getItem('tqa_session'));
     const userRole = session ? session.role : '';
 
     if (userRole === 'COMERCIAL' && clientId) {
-        window.location.href = `cliente-dashboard.html?id=${clientId}`;
+        // El comercial termina y vuelve a su menú o lista
+        window.location.href = `menu.html`; 
     } else {
+        // Flujo original o Admin
         window.location.href = 'informe_riesgo.html';
     }
 });
