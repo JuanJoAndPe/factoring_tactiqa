@@ -203,10 +203,24 @@
   <script src="menu.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const session = JSON.parse(localStorage.getItem('tqa_session'));
-        if(session && session.nombre) {
-            document.getElementById('userNameDisplay').textContent = "Hola, " + session.nombre + " (" + session.role + ")";
+        // Cargar la sesión
+        const sessionStr = localStorage.getItem('tqa_session');
+        if(!sessionStr) {
+            window.location.href = 'index.html';
+            return;
         }
+        
+        const session = JSON.parse(sessionStr);
+        
+        // Mostrar nombre de usuario (compatibilidad con ambas nomenclaturas)
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        if(userNameDisplay && session) {
+            const displayName = session.nombre || session.name || session.email.split('@')[0];
+            const displayRole = session.role || 'Usuario';
+            userNameDisplay.textContent = "Hola, " + displayName + " (" + displayRole + ")";
+        }
+        
+        // Aplicar permisos de menú
         if(typeof applyMenuPermissions === 'function'){
             applyMenuPermissions(); 
         }
@@ -216,6 +230,6 @@
         localStorage.removeItem('tqa_session');
         window.location.href = 'index.html';
     }
-  </script>
+</script>
 </body>
 </html>
