@@ -1,117 +1,227 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    const today = new Date();
-    document.getElementById('reportDate').textContent = today.toLocaleDateString('es-EC');
+    // Configuración API
+    const API_URL = 'https://prtjv5sj7h.execute-api.us-east-2.amazonaws.com/default';
     
-    loadClientData();
-    loadDocuments();
-    loadFinancialKPIs();
+    document.getElementById('reportDate').textContent = new Date().toLocaleDateString('es-EC');
 
-    const btnSend = document.getElementById('btnSendToCommittee') || document.getElementById('btnFinalize');
+    // Referencias DOM
+    const btnSend = document.getElementById('btnSendToCommittee');
+    const btnReject = document.getElementById('btnReject');
     const btnViewDocs = document.getElementById('btnViewDocs');
     const modal = document.getElementById('docsModal');
 
-    if (btnViewDocs) {
-        btnViewDocs.addEventListener('click', () => {
-            modal.classList.add('active');
-        });
-    }
-    window.onclick = function(event) {
-        if (event.target == modal) modal.classList.remove('active');
-    }
+    // 1. INICIALIZACIÓN: CARGAR DATOS REALES DE LA API
+    initReport();
 
-    if (btnSend) {
-        btnSend.addEventListener('click', () => {
-            const riskData = {
-                fecha: document.getElementById('reportDate').textContent,
-                score: document.getElementById('viewScore').value,
-                capacidadPago: document.getElementById('viewCapacidad').value,
-                
-                chkJudicial: document.querySelector('input[name="chkJudicial"]:checked')?.value,
-                chkSri: document.querySelector('input[name="chkSri"]:checked')?.value,
-                chkUafe: document.querySelector('input[name="chkUafe"]:checked')?.value,
-                
-                conclusion: document.getElementById('txtConclusion').value
-            };
+    async function initReport() {
+        // Recuperar ID desde el borrador actualizado
+        const draft = JSON.parse(localStorage.getItem("tqa_cliente_draft") || "{}");
+        const clientId = draft.id || (draft.data ? draft.data.id : null);
 
-            if (!riskData.conclusion) {
-                alert("⚠️ Por favor ingrese una conclusión.");
-                return;
+        if (!clientId) {
+            alert("Error: No se ha seleccionado un cliente. Vuelva a la bandeja de entrada.");
+            return;
+        }
+
+        console.log("Cargando datos para cliente:", clientId);
+
+        try {
+            const response = await fetch(`${API_URL}/clientes?id=${clientId}`);
+            const data = await response.json();
+            const client = data.items ? data.items[0] : data;
+
+            if (!client) throw new Error("Cliente no encontrado en BD");
+
+            // A. Llenar Datos Básicos
+            fillBasicData(client);
+
+            // B. Llenar Documentos
+            let docs = [];
+            if (client.documentos_financieros) {
+                docs = typeof client.documentos_financieros === 'string' 
+                    ? JSON.parse(client.documentos_financieros) 
+                    : client.documentos_financieros;
+            }
+            renderDocuments(docs);
+
+            // C. Llenar KPIs
+            if (client.kpis_financieros) {
+                const kpis = typeof client.kpis_financieros === 'string'
+                    ? JSON.parse(client.kpis_financieros)
+                    : client.kpis_financieros;
+                
+                fillKPIs(kpis);
             }
 
-            // TODO: API CALL (SQL: INSERT INTO InformesRiesgo (cliente_id, score, estado, json_detalle) VALUES (?, ?, 'PENDIENTE_COMITE', ?))
-            localStorage.setItem('tqa_risk_report_final', JSON.stringify(riskData));
+        } catch (e) {
+            console.error(e);
+            alert("Error cargando expediente: " + e.message);
+        }
+    }
 
-            alert("✅ INFORME ENVIADO A COMITÉ.\n\nEl expediente ha sido transferido.");
-            window.location.href = 'menu.html';
+    // --- FUNCIONES DE LLENADO ---
+
+    function fillBasicData(client) {
+        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+
+        if (client.tipo === 'PJ' || client.razon_social) {
+            setVal('txtEmpresa', client.razon_social);
+            setVal('txtRuc', client.ruc);
+            setVal('txtActividad', "Comercial / Servicios");
+            setVal('txtRepLegal', "Representante Legal"); 
+        } else {
+            setVal('txtEmpresa', client.nombre);
+            setVal('txtRuc', client.ruc || client.id);
+            setVal('txtActividad', "Persona Natural");
+        }
+        
+        const session = JSON.parse(localStorage.getItem('tqa_session') || "{}");
+        if(session.nombre) document.getElementById('analystName').textContent = session.nombre;
+    }
+
+    // CORRECCIÓN AQUÍ: Usamos openSecureDocument en lugar de window.open directo
+    function renderDocuments(docs) {
+        const list = document.getElementById('docsList');
+        if (!docs || docs.length === 0) {
+            list.innerHTML = '<p style="color:#999; text-align:center;">No hay documentos digitales cargados.</p>';
+            return;
+        }
+
+        list.innerHTML = "";
+        docs.forEach(doc => {
+            list.innerHTML += `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #eee;">
+                    <div style="font-size:13px; font-weight:500; display:flex; align-items:center; gap:10px;">
+                        <i class="fa-regular fa-file-pdf" style="color:#e74c3c;"></i> 
+                        ${doc.name || 'Documento Adjunto'}
+                    </div>
+                    <button class="btn-icon" onclick="openSecureDocument('${doc.url}')" title="Ver Documento" style="cursor:pointer; border:none; background:none; color:#1F3A5F;">
+                        <i class="fa-solid fa-eye"></i> Ver
+                    </button>
+                </div>
+            `;
         });
     }
 
-    function loadDocuments() {
-        // TODO: API CALL (SQL: SELECT * FROM Documentos WHERE cliente_id = ?)
-        const docsJSON = localStorage.getItem('finanzasPro_DocsTemp');
-        const list = document.getElementById('docsList');
-        if(!list) return;
-
-        const data = docsJSON ? JSON.parse(docsJSON) : { documents: [] };
-
-        if (data.documents && data.documents.length > 0) {
-            let html = '<ul style="list-style:none; padding:0;">';
-            data.documents.forEach(doc => {
-                 html += `<li style="margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:5px;">
-                            <a href="#" style="color:#2980b9; text-decoration:none;">
-                                <i class="fa-solid fa-file-pdf"></i> ${doc.name}
-                            </a>
-                          </li>`;
-            });
-            html += '</ul>';
-            list.innerHTML = html;
-        } else {
-            list.innerHTML = '<p style="color:#999; font-style:italic;">No se han cargado documentos digitales.</p>';
-        }
-    }
-
-    function loadFinancialKPIs() {
-        // TODO: API CALL (SQL: SELECT kpis_json FROM AnalisisFinanciero WHERE cliente_id = ? ORDER BY id DESC LIMIT 1)
-        const kpiJSON = localStorage.getItem('tqa_financial_kpis');
+    function fillKPIs(kpis) {
+        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
         
-        if (kpiJSON) {
-            const kpis = JSON.parse(kpiJSON);
-            document.getElementById('viewEndeudamiento').value = kpis.endeudamiento || "0.00";
+        let score = 500;
+        const liq = parseFloat(kpis.liquidez || 0);
+        const end = parseFloat(kpis.endeudamiento || 0);
+        
+        if (liq > 1.0) score += 200;
+        if (end < 0.7 && end > 0) score += 150;
+        
+        setVal('scoreCredito', score);
+        
+        const cards = document.querySelectorAll('.kpi-card');
+        cards.forEach(card => {
+            const label = card.querySelector('label').innerText.toUpperCase();
+            const valueSpan = card.querySelector('.value');
             
-            let score = 500;
-            if (parseFloat(kpis.liquidez) > 1.5) score += 200;
-            if (parseFloat(kpis.endeudamiento) < 0.6) score += 150;
-            
-            document.getElementById('viewScore').value = score;
-            document.getElementById('viewCapacidad').value = `$ ${parseFloat(kpis.liquidez * 10000).toFixed(2)}`; 
+            if(label.includes('LIQUIDEZ')) valueSpan.innerText = liq.toFixed(2);
+            if(label.includes('P. ÁCIDA')) valueSpan.innerText = (liq * 0.8).toFixed(2);
+            if(label.includes('ENDEUDAMIENTO') || label.includes('DEUDA')) valueSpan.innerText = end.toFixed(2);
+        });
+    }
+
+    // === UI HANDLERS ===
+    
+    if (btnViewDocs) {
+        btnViewDocs.addEventListener('click', () => modal.classList.add('active'));
+    }
+    window.onclick = (e) => { if (e.target == modal) modal.classList.remove('active'); };
+
+    if (btnSend) {
+        btnSend.addEventListener('click', async () => {
+            if(!validateConclusion()) return;
+            if (!confirm("¿Enviar a Comité de Riesgos?")) return;
+            await updateStatus('PENDIENTE_COMITE', document.getElementById('txtConclusion').value);
+        });
+    }
+
+    if (btnReject) {
+        btnReject.addEventListener('click', async () => {
+            if(!validateConclusion(true)) return;
+            if (!confirm("¿Devolver a Comercial para correcciones?")) return;
+            await updateStatus('CORRECCION', "DEVUELTO: " + document.getElementById('txtConclusion').value);
+        });
+    }
+
+    function validateConclusion(isReject = false) {
+        const val = document.getElementById('txtConclusion').value.trim();
+        if (!val) {
+            const msg = isReject ? "Para devolver, debe explicar el motivo." : "Debe ingresar una conclusión.";
+            alert("⚠️ " + msg);
+            document.getElementById('txtConclusion').focus();
+            return false;
+        }
+        return true;
+    }
+
+    async function updateStatus(newState, obs) {
+        const draft = JSON.parse(localStorage.getItem("tqa_cliente_draft") || "{}");
+        const clientId = draft.id || (draft.data ? draft.data.id : null);
+
+        const btn = newState === 'PENDIENTE_COMITE' ? btnSend : btnReject;
+        const original = btn.innerHTML;
+        btn.disabled = true; 
+        btn.innerHTML = '...';
+
+        try {
+            await fetch(`${API_URL}/clientes?id=${clientId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    estado: newState,
+                    informe_riesgo: {
+                        fecha: new Date().toLocaleDateString(),
+                        conclusion: obs,
+                        score: document.getElementById('scoreCredito').value
+                    }
+                })
+            });
+            alert(newState === 'CORRECCION' ? "↩️ Devuelto correctamente." : "✅ Enviado a Comité.");
+            window.location.href = 'operativo-tareas.html';
+        } catch (e) {
+            alert("Error: " + e.message);
+            btn.disabled = false;
+            btn.innerHTML = original;
         }
     }
 
-    function loadClientData() {
-        // TODO: API CALL (SQL: SELECT * FROM Clientes WHERE id = ?)
-        const draftJSON = localStorage.getItem("tqa_cliente_draft");
-        if (draftJSON) {
-            try {
-                const client = JSON.parse(draftJSON);
-                const data = client.data || {};
-                
-                const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+    // === NUEVA FUNCIÓN: ABRIR DOCUMENTO SEGURO ===
+    // Esta función pide permiso a la API antes de abrir el PDF
+    window.openSecureDocument = async (publicUrl) => {
+        if (!publicUrl) return;
 
-                if (client.tipo === "PJ") {
-                    setVal('txtEmpresa', data.pj_razon_social);
-                    setVal('txtRuc', data.pj_ruc);
-                    setVal('txtActividad', data.pj_actividad_economica); 
-                    setVal('txtRepLegal', `${data.pj_rep_nombre} ${data.pj_rep_apellido}`);
-                    setVal('txtCiRep', data.pj_rep_num);
-                } else {
-                    setVal('txtEmpresa', data.pn_razon || `${data.pn_nombre} ${data.pn_apellido}`);
-                    setVal('txtRuc', data.pn_ruc);
-                    setVal('txtActividad', "Persona Natural");
-                    setVal('txtRepLegal', `${data.pn_nombre} ${data.pn_apellido}`);
-                    setVal('txtCiRep', data.pn_num_id);
-                }
-            } catch (e) { console.error(e); }
+        try {
+            // Extraer la "key" (ruta del archivo) de la URL
+            const urlObj = new URL(publicUrl);
+            const key = urlObj.pathname.substring(1); // Quita la primera barra '/'
+            
+            // UI Feedback
+            const btn = event.currentTarget; 
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+            // Pedir URL firmada
+            const response = await fetch(`${API_URL}/files/read-url?key=${encodeURIComponent(key)}`);
+            const data = await response.json();
+
+            btn.innerHTML = originalHTML;
+
+            if (data.success) {
+                window.open(data.url, '_blank'); // Abre la URL temporal que sí funciona
+            } else {
+                alert("Acceso denegado al archivo.");
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert("Error al abrir el documento.");
         }
-    }
+    };
 });

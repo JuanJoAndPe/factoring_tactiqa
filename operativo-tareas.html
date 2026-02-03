@@ -113,10 +113,15 @@
             </div>
 
         <label>Observaciones del Analista Operativo:</label>
-        <textarea id="modalObs" placeholder="Ingrese observaciones sobre la validación documental..." style="min-height: 80px;"></textarea>
+        <textarea id="modalObs" placeholder="Ingrese observaciones obligatorias en caso de devolución..." style="min-height: 80px;"></textarea>
 
-        <div class="actions" style="padding-bottom: 0; border: none; margin-top: 15px;">
+        <div class="actions" style="padding-bottom: 0; border: none; margin-top: 15px; display: flex; justify-content: space-between;">
             <button class="btn ghost" onclick="closeModal()">Cerrar</button>
+            
+            <button class="btn secondary" style="background: #fff5f5; color: #c0392b; border: 1px solid #e74c3c; margin-right: 10px; margin-left: auto;" onclick="rejectTask()">
+                <i class="fa-solid fa-rotate-left"></i> Devolver / Corregir
+            </button>
+            
             <button class="btn primary" id="modalMainActionBtn" onclick="submitReview()">
                 <i class="fa-solid fa-check icon"></i> Aprobar / Continuar
             </button>

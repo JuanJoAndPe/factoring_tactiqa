@@ -1,153 +1,284 @@
 // Configuración PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// Aseguramos que API_URL esté definida (por si auth.js no cargó antes)
 if (typeof API_URL === 'undefined') {
     window.API_URL = 'https://prtjv5sj7h.execute-api.us-east-2.amazonaws.com/default';
 }
 
-const MAP_BG = { "ACTIVO CORRIENTE": "101", "ACTIVO NO CORRIENTE": "102", "INVENTARIOS": "10103", "ACTIVO": "1", "PASIVO CORRIENTE": "201", "PASIVO NO CORRIENTE": "202", "PASIVO": "2", "PATRIMONIO NETO": "3", "RESULTADOS DEL EJERCICIO": "307" };
-const MAP_ER = { "INGRESOS DE ACTIVIDADES ORDINARIAS": "401", "GANANCIA BRUTA": "402", "OTROS INGRESOS": "403", "COSTO DE VENTAS Y PRODUCCIÓN": "501", "GASTOS FINANCIEROS":"50203", "GANANCIA ANTES DE IMPUESTOS": "602", "IMPUESTO A LA RENTA CAUSADO": "603", "GANANCIA NETA DEL PERIODO": "707" };
+// MAPEO DE CUENTAS (Solo usamos los nombres para buscar, la Regex se encarga del resto)
+const MAP_BG = { 
+    "ACTIVO CORRIENTE": ["ACTIVO CORRIENTE", "TOTAL ACTIVO CORRIENTE"], 
+    "ACTIVO NO CORRIENTE": ["ACTIVO NO CORRIENTE", "TOTAL ACTIVO NO CORRIENTE"], 
+    "INVENTARIOS": ["INVENTARIOS"], 
+    "ACTIVO": ["TOTAL DEL ACTIVO", "TOTAL ACTIVO", "ACTIVO"], // "ACTIVO" al final para evitar falsos positivos
+    "PASIVO CORRIENTE": ["PASIVO CORRIENTE", "TOTAL PASIVO CORRIENTE"], 
+    "PASIVO NO CORRIENTE": ["PASIVO NO CORRIENTE", "TOTAL PASIVO NO CORRIENTE"], 
+    "PASIVO": ["TOTAL DEL PASIVO", "TOTAL PASIVO", "PASIVO"], 
+    "PATRIMONIO NETO": ["PATRIMONIO NETO", "TOTAL PATRIMONIO", "PATRIMONIO"], 
+    "RESULTADOS DEL EJERCICIO": ["RESULTADOS DEL EJERCICIO", "RESULTADO INTEGRAL DEL EJERCICIO", "GANANCIA NETA DEL PERIODO"] 
+};
 
+const MAP_ER = { 
+    "INGRESOS DE ACTIVIDADES ORDINARIAS": ["INGRESOS DE ACTIVIDADES ORDINARIAS", "VENTAS NETAS"], 
+    "GANANCIA BRUTA": ["GANANCIA BRUTA", "UTILIDAD BRUTA"], 
+    "OTROS INGRESOS": ["OTROS INGRESOS"], 
+    "COSTO DE VENTAS Y PRODUCCIÓN": ["COSTO DE VENTAS Y PRODUCCIÓN", "COSTO DE VENTAS"], 
+    "GASTOS FINANCIEROS": ["GASTOS FINANCIEROS"], 
+    "GANANCIA ANTES DE IMPUESTOS": ["GANANCIA ANTES DE IMPUESTOS", "UTILIDAD ANTES DE IMPUESTOS"], 
+    "IMPUESTO A LA RENTA CAUSADO": ["IMPUESTO A LA RENTA CAUSADO", "IMPUESTO A LA RENTA"], 
+    "GANANCIA NETA DEL PERIODO": ["GANANCIA NETA DEL PERIODO", "UTILIDAD NETA DEL EJERCICIO"] 
+};
+
+// --- 1. PESTAÑAS ---
 document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tabpanel').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
-        const panel = document.getElementById(tab.dataset.target);
-        if (panel) panel.classList.add('active');
+        const targetPanel = document.querySelector(`.tabpanel[data-panel="${tab.getAttribute('data-tab')}"]`);
+        if (targetPanel) targetPanel.classList.add('active');
     });
 });
 
+// --- 2. LECTURA INTELIGENTE DE PDF (CORREGIDO) ---
 async function extractDataFromPDF(file, mapType) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
     let fullText = "";
 
+    // Unir todo el texto con espacios seguros
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(" ");
-        fullText += pageText + " ";
+        fullText += textContent.items.map(item => item.str).join("  ") + "  "; 
     }
 
     const map = mapType === 'BG' ? MAP_BG : MAP_ER;
     const results = {};
 
-    for (const [key, code] of Object.entries(map)) {
-        const regex = new RegExp(`${code}\\s+.*?([\\d\\.,]+)`, "i");
-        const match = fullText.match(regex);
-        if (match) {
-            results[key] = match[1];
+    for (const [key, keywords] of Object.entries(map)) {
+        for (const keyword of keywords) {
+            // EXPLICACIÓN REGEX:
+            // 1. Busca el NOMBRE DE LA CUENTA (ej: ACTIVO CORRIENTE)
+            // 2. [\s\S]{0,60}?  -> Ignora hasta 60 caracteres de basura/espacios
+            // 3. \d+            -> Encuentra el CÓDIGO (ej: 101) y lo salta
+            // 4. [\s\S]{0,20}?  -> Ignora espacios después del código
+            // 5. ([\d\.,]+)     -> ¡CAPTURA ESTO! El segundo número (el valor)
+            const escapedKeyword = keyword.replace('.', '\\.');
+            const regex = new RegExp(`${escapedKeyword}[\\s\\S]{0,60}?\\s+\\d+[\\.\\d]*\\s+([\\d\\.,]+)`, "i");
+            
+            const match = fullText.match(regex);
+            if (match) {
+                // Limpieza de formato (1.000,00 o 1,000.00)
+                let val = match[1];
+                
+                // Si tiene punto y coma, asumimos formato latino (1.000,00) -> 1000.00
+                if (val.includes('.') && val.includes(',')) {
+                    val = val.replace(/\./g, '').replace(',', '.');
+                } 
+                // Si solo tiene coma, asumimos decimal (1000,00) -> 1000.00
+                else if (val.includes(',') && !val.includes('.')) {
+                    val = val.replace(',', '.');
+                }
+                
+                results[key] = val;
+                break; // Encontramos dato, siguiente cuenta
+            }
         }
     }
     return results;
 }
 
-['fileBG', 'fileER'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-        el.addEventListener('change', async (e) => {
-            if (e.target.files.length === 0) return;
+// --- Listener de Carga ---
+document.querySelectorAll('.pdf-autofill').forEach(input => {
+    input.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const type = e.target.getAttribute('data-type').toUpperCase();
+        const colIndex = parseInt(e.target.getAttribute('data-col')); 
+        const statusEl = document.getElementById(`status-${type.toLowerCase()}-${colIndex}`);
+        
+        if(statusEl) statusEl.innerHTML = '<span class="status-loading">⏳ Analizando...</span>';
+
+        try {
+            const data = await extractDataFromPDF(file, type);
+            // Validamos si leyó algo útil (ej: Total Activo)
+            const checkKey = type === 'BG' ? 'ACTIVO' : 'GANANCIA BRUTA';
             
-            const file = e.target.files[0];
-            const type = id === 'fileBG' ? 'BG' : 'ER';
-            const statusId = id === 'fileBG' ? 'statusBG' : 'statusER';
-            const statusEl = document.getElementById(statusId);
-            
-            if(statusEl) statusEl.innerHTML = '<span class="status-loading">Procesando...</span>';
-    
-            try {
-                const data = await extractDataFromPDF(file, type);
-                fillTable(data, type === 'BG' ? '#tableBG' : '#tableER');
-                if(statusEl) statusEl.innerHTML = '<span class="status-success">✓ Datos extraídos</span>';
-            } catch (err) {
-                console.error(err);
-                if(statusEl) statusEl.innerHTML = '<span style="color:red">Error al leer PDF</span>';
+            if (data[checkKey]) {
+                fillTable(data, type === 'BG' ? '#table-bg' : '#table-er', colIndex);
+                if(statusEl) statusEl.innerHTML = '<span class="status-success">✅ Datos leídos</span>';
+            } else {
+                if(statusEl) statusEl.innerHTML = '<span class="status-error">⚠️ Lectura manual</span>';
             }
-        });
-    }
+        } catch (err) {
+            console.error(err);
+            if(statusEl) statusEl.innerHTML = '<span class="status-error">❌ Error archivo</span>';
+        }
+    });
 });
 
-function fillTable(data, tableId) {
+function fillTable(data, tableId, colIndex) {
+    const cssCol = colIndex + 2; // Columna HTML (index + 2)
     const rows = document.querySelectorAll(`${tableId} tr[data-key]`);
     rows.forEach(row => {
         const key = row.getAttribute('data-key');
         if (data[key]) {
-            const input = row.querySelector('td:nth-child(2) input');
-            if(input) input.value = data[key];
+            const input = row.querySelector(`td:nth-child(${cssCol}) input`);
+            if(input) {
+                input.value = data[key]; // Insertamos el valor limpio
+                input.classList.add('autofilled');
+            }
         }
     });
 }
 
-// === LÓGICA DE GUARDADO Y REDIRECCIÓN MODIFICADA ===
-document.getElementById('btnSave').addEventListener('click', () => {
-    const data = { bg: {}, er: {} };
-
-    const readTable = (tableId, obj) => {
-        document.querySelectorAll(`${tableId} tr[data-key]`).forEach(row => {
-            const key = row.getAttribute('data-key');
-            const val = row.querySelector('td:nth-child(2) input').value;
-            obj[key] = val;
-        });
-    };
-
-    readTable('#tableBG', data.bg);
-    readTable('#tableER', data.er);
-
-    const actCte = parseFloat(data.bg["ACTIVO CORRIENTE"]?.replace(/,/g, '') || 0);
-    const pasCte = parseFloat(data.bg["PASIVO CORRIENTE"]?.replace(/,/g, '') || 0);
-    const liquidez = pasCte ? (actCte / pasCte).toFixed(2) : "0.00";
-
-    const activo = parseFloat(data.bg["ACTIVO"]?.replace(/,/g, '') || 0);
-    const pasivo = parseFloat(data.bg["PASIVO"]?.replace(/,/g, '') || 0);
-    const endeudamiento = activo ? (pasivo / activo).toFixed(2) : "0.00";
-
-    const kpis = { liquidez, endeudamiento, data };
-
+// --- 3. GUARDADO Y CÁLCULO (Mejorado para detectar columnas vacías) ---
+document.getElementById('btnSave').addEventListener('click', async () => {
+    const btn = document.getElementById('btnSave');
+    const originalText = btn.innerHTML;
+    
+    // Validaciones
     const urlParams = new URLSearchParams(window.location.search);
-    const clientId = urlParams.get('clientId');
+    const session = JSON.parse(localStorage.getItem('tqa_session') || "{}");
+    let clientId = urlParams.get('clientId') || (session.role === 'CLIENTE' ? session.id : null);
+    
+    if (!clientId) return alert("❌ Error: No se identificó al cliente.");
+    if (!document.getElementById('checkTerminos').checked) return alert("⚠️ Debe aceptar los términos.");
 
-    if (clientId) {
-        // 1. Guardado Local (Backup y UI)
-        const clientes = JSON.parse(localStorage.getItem('tactiqa_clientes') || "[]");
-        const clienteIndex = clientes.findIndex(c => c.id === clientId);
-        if (clienteIndex >= 0) {
-            clientes[clienteIndex].estado = "EN_REVISION"; // Actualización visual local
-            localStorage.setItem('tactiqa_clientes', JSON.stringify(clientes));
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+
+    try {
+        // A) Subir Archivos
+        const uploadedDocs = [];
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        const folderName = `FINANCIEROS/${clientId}/${Date.now()}`;
+
+        for (const input of fileInputs) {
+            if (input.files.length > 0) {
+                if (!input.id) input.id = "doc_" + Math.random().toString(36).substr(2, 5);
+                try {
+                    let label = input.closest('.doc-box')?.querySelector('label')?.innerText.replace('*','').trim() || "Adjunto";
+                    const res = await uploadFile(input.id, folderName, null, null, null, { hideButtonState: true });
+                    if (res?.publicUrl) uploadedDocs.push({ name: label, url: res.publicUrl });
+                } catch (e) { console.error("Error subida", e); }
+            }
         }
-        localStorage.setItem(`tqa_financial_kpis_${clientId}`, JSON.stringify(kpis));
 
-        // 2. CONEXIÓN A BD: Actualizar estado a 'EN_REVISION'
-        // Esto hace que aparezca en la bandeja del Operativo
-        if (typeof API_URL !== 'undefined') {
-            console.log("Enviando cliente a revisión:", clientId);
-            fetch(`${API_URL}/clientes/${clientId}`, {
-                method: 'PUT', // Asegúrate que tu API soporte PUT para updates
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    estado_proceso: 'EN_REVISION' // <--- CAMBIO CLAVE PARA TU BASE DE DATOS
-                })
-            }).then(res => {
-                if(res.ok) console.log("✅ Cliente enviado a operaciones (DB actualizada)");
-                else console.warn("⚠️ No se pudo actualizar estado en DB, pero se guardó localmente.");
-            }).catch(err => console.error("Error conectando a API:", err));
+        // B) Leer Tablas
+        const data = { bg: {}, er: {} };
+        const readTable = (tableId, obj) => {
+            document.querySelectorAll(`${tableId} tr[data-key]`).forEach(row => {
+                const key = row.getAttribute('data-key');
+                obj[key] = [
+                    row.querySelector('td:nth-child(2) input')?.value || "0",
+                    row.querySelector('td:nth-child(3) input')?.value || "0",
+                    row.querySelector('td:nth-child(4) input')?.value || "0"
+                ];
+            });
+        };
+        readTable('#table-bg', data.bg);
+        readTable('#table-er', data.er);
+
+        // C) Calcular KPIs (Buscando la última columna con datos reales)
+        const clean = (val) => parseFloat((val || "0").toString().replace(/,/g, '').replace(/[^0-9.-]+/g,"")) || 0;
+
+        // Detectar automáticamente qué año tiene datos (3, 2 o 1)
+        let idx = 2; // Por defecto Año 3
+        if (clean(data.bg["ACTIVO"][2]) === 0) {
+            if (clean(data.bg["ACTIVO"][1]) > 0) idx = 1;
+            else if (clean(data.bg["ACTIVO"][0]) > 0) idx = 0;
         }
-    } else {
-        localStorage.setItem('tqa_financial_kpis', JSON.stringify(kpis));
+
+        // Variables clave
+        const activo = clean(data.bg["ACTIVO"][idx]);
+        const pasivo = clean(data.bg["PASIVO"][idx]);
+        const patrimonio = clean(data.bg["PATRIMONIO NETO"][idx]);
+        const actCte = clean(data.bg["ACTIVO CORRIENTE"][idx]);
+        const pasCte = clean(data.bg["PASIVO CORRIENTE"][idx]);
+        const ventas = clean(data.er["INGRESOS DE ACTIVIDADES ORDINARIAS"][idx]);
+        const utNeta = clean(data.er["GANANCIA NETA DEL PERIODO"][idx]);
+        const ebitda = clean(data.er["GANANCIA ANTES DE IMPUESTOS"][idx]) + clean(data.er["GASTOS FINANCIEROS"][idx]);
+
+        const kpis = { 
+            liquidez: pasCte ? (actCte / pasCte).toFixed(2) : "0.00",
+            endeudamiento: activo ? (pasivo / activo).toFixed(2) : "0.00",
+            margen_neto: ventas ? ((utNeta / ventas) * 100).toFixed(2) + "%" : "0.00%",
+            roa: activo ? ((utNeta / activo) * 100).toFixed(2) + "%" : "0.00%",
+            roe: patrimonio ? ((utNeta / patrimonio) * 100).toFixed(2) + "%" : "0.00%",
+            deuda_act: activo ? (pasivo / activo).toFixed(2) : "0.00",
+            ebitda: ebitda.toFixed(2),
+            raw_data: data
+        };
+
+        console.log("KPIs Calculados:", kpis); // Debug en consola
+
+        // D) Guardar en BD
+        const response = await fetch(`${API_URL}/clientes?id=${clientId}`, { 
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                estado: 'EN_REVISION',
+                kpis_financieros: kpis,
+                documentos_financieros: uploadedDocs
+            })
+        });
+
+        if (!response.ok) throw new Error("Error en respuesta API");
+
+        // E) Actualizar borrador local para navegación fluida
+        const draft = JSON.parse(localStorage.getItem('tqa_cliente_draft') || '{}');
+        draft.id = clientId;
+        localStorage.setItem('tqa_cliente_draft', JSON.stringify(draft));
+
+        alert("✅ Información financiera guardada y procesada correctamente.");
+        
+        if (session.role === 'COMERCIAL' || session.role === 'CLIENTE') window.location.href = 'menu.html';
+        else window.location.href = 'informe_riesgo.html';
+
+    } catch (e) {
+        console.error(e);
+        alert("Hubo un problema al guardar: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
+});
 
-    alert("✅ Información guardada. El expediente ha sido enviado a Operaciones para revisión.");
+// Cargar datos previos
+document.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const session = JSON.parse(localStorage.getItem('tqa_session') || "{}");
+    let clientId = urlParams.get('clientId') || (session.role === 'CLIENTE' ? session.id : null);
 
-    // Redirección inteligente según rol
-    const session = JSON.parse(localStorage.getItem('tqa_session'));
-    const userRole = session ? session.role : '';
+    if (!clientId) return;
 
-    if (userRole === 'COMERCIAL' && clientId) {
-        // El comercial termina y vuelve a su menú o lista
-        window.location.href = `menu.html`; 
-    } else {
-        // Flujo original o Admin
-        window.location.href = 'informe_riesgo.html';
-    }
+    try {
+        const res = await fetch(`${API_URL}/clientes?id=${clientId}`);
+        const result = await res.json();
+        const client = result.items ? result.items[0] : result;
+
+        if (client && client.kpis_financieros) {
+            let kpis = typeof client.kpis_financieros === 'string' ? JSON.parse(client.kpis_financieros) : client.kpis_financieros;
+            if(kpis.raw_data) {
+                const fillRow = (tableId, dataObj) => {
+                    Object.keys(dataObj).forEach(key => {
+                        const vals = dataObj[key];
+                        const row = document.querySelector(`${tableId} tr[data-key="${key}"]`);
+                        if (row && Array.isArray(vals)) {
+                            // Rellenar las 3 columnas
+                            for(let i=0; i<3; i++) {
+                                const input = row.querySelector(`td:nth-child(${i+2}) input`);
+                                if(input) input.value = vals[i];
+                            }
+                        }
+                    });
+                };
+                fillRow('#table-bg', kpis.raw_data.bg);
+                fillRow('#table-er', kpis.raw_data.er);
+            }
+        }
+    } catch(e) { console.log("Sin datos previos"); }
 });
