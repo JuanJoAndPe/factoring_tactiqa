@@ -11,11 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnViewDocs = document.getElementById('btnViewDocs');
     const modal = document.getElementById('docsModal');
 
-    // 1. INICIALIZACIÓN: CARGAR DATOS REALES DE LA API
+    // 1. INICIALIZACIÓN: CARGAR DATOS
     initReport();
 
     async function initReport() {
-        // Recuperar ID desde el borrador actualizado
+        // Recuperar ID desde el borrador
         const draft = JSON.parse(localStorage.getItem("tqa_cliente_draft") || "{}");
         const clientId = draft.id || (draft.data ? draft.data.id : null);
 
@@ -27,16 +27,17 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Cargando datos para cliente:", clientId);
 
         try {
+            // Consulta segura con ?id=
             const response = await fetch(`${API_URL}/clientes?id=${clientId}`);
             const data = await response.json();
             const client = data.items ? data.items[0] : data;
 
             if (!client) throw new Error("Cliente no encontrado en BD");
 
-            // A. Llenar Datos Básicos
+            // Llenar formulario
             fillBasicData(client);
 
-            // B. Llenar Documentos
+            // Llenar Documentos
             let docs = [];
             if (client.documentos_financieros) {
                 docs = typeof client.documentos_financieros === 'string' 
@@ -45,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             renderDocuments(docs);
 
-            // C. Llenar KPIs
+            // Llenar KPIs
             if (client.kpis_financieros) {
                 const kpis = typeof client.kpis_financieros === 'string'
                     ? JSON.parse(client.kpis_financieros)
@@ -80,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(session.nombre) document.getElementById('analystName').textContent = session.nombre;
     }
 
-    // CORRECCIÓN AQUÍ: Usamos openSecureDocument en lugar de window.open directo
     function renderDocuments(docs) {
         const list = document.getElementById('docsList');
         if (!docs || docs.length === 0) {
@@ -124,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(label.includes('LIQUIDEZ')) valueSpan.innerText = liq.toFixed(2);
             if(label.includes('P. ÁCIDA')) valueSpan.innerText = (liq * 0.8).toFixed(2);
             if(label.includes('ENDEUDAMIENTO') || label.includes('DEUDA')) valueSpan.innerText = end.toFixed(2);
+            if(label.includes('EBITDA')) valueSpan.innerText = kpis.ebitda || "0.00";
         });
     }
 
@@ -161,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
+    // === FUNCIÓN CRÍTICA: ACTUALIZAR ESTADO (CORREGIDA) ===
     async function updateStatus(newState, obs) {
         const draft = JSON.parse(localStorage.getItem("tqa_cliente_draft") || "{}");
         const clientId = draft.id || (draft.data ? draft.data.id : null);
@@ -171,20 +173,31 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.innerHTML = '...';
 
         try {
-            await fetch(`${API_URL}/clientes?id=${clientId}`, {
+            const riskData = {
+                fecha: document.getElementById('reportDate').textContent,
+                score: document.getElementById('scoreCredito').value,
+                capacidadPago: document.getElementById('deudaReportada').value,
+                chkJudicial: document.querySelector('#chkJudicial').value,
+                chkSri: document.querySelector('#chkSri').value,
+                chkIess: document.querySelector('#chkIess').value,
+                conclusion: obs
+            };
+
+            // USAMOS ?id= (CORRECCIÓN VITAL)
+            const response = await fetch(`${API_URL}/clientes?id=${clientId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     estado: newState,
-                    informe_riesgo: {
-                        fecha: new Date().toLocaleDateString(),
-                        conclusion: obs,
-                        score: document.getElementById('scoreCredito').value
-                    }
+                    informe_riesgo: riskData
                 })
             });
+
+            if (!response.ok) throw new Error("Error en la actualización");
+
             alert(newState === 'CORRECCION' ? "↩️ Devuelto correctamente." : "✅ Enviado a Comité.");
             window.location.href = 'operativo-tareas.html';
+
         } catch (e) {
             alert("Error: " + e.message);
             btn.disabled = false;
@@ -192,32 +205,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // === NUEVA FUNCIÓN: ABRIR DOCUMENTO SEGURO ===
-    // Esta función pide permiso a la API antes de abrir el PDF
+    // === ABRIR DOC SEGURO ===
     window.openSecureDocument = async (publicUrl) => {
         if (!publicUrl) return;
-
         try {
-            // Extraer la "key" (ruta del archivo) de la URL
             const urlObj = new URL(publicUrl);
-            const key = urlObj.pathname.substring(1); // Quita la primera barra '/'
+            const key = urlObj.pathname.substring(1); 
             
-            // UI Feedback
             const btn = event.currentTarget; 
             const originalHTML = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
-            // Pedir URL firmada
-            const response = await fetch(`${API_URL}/files/read-url?key=${encodeURIComponent(key)}`);
-            const data = await response.json();
+            const res = await fetch(`${API_URL}/files/read-url?key=${encodeURIComponent(key)}`);
+            const data = await res.json();
 
             btn.innerHTML = originalHTML;
 
-            if (data.success) {
-                window.open(data.url, '_blank'); // Abre la URL temporal que sí funciona
-            } else {
-                alert("Acceso denegado al archivo.");
-            }
+            if (data.success) window.open(data.url, '_blank');
+            else alert("Acceso denegado.");
 
         } catch (e) {
             console.error(e);

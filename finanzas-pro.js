@@ -5,12 +5,12 @@ if (typeof API_URL === 'undefined') {
     window.API_URL = 'https://prtjv5sj7h.execute-api.us-east-2.amazonaws.com/default';
 }
 
-// MAPEO DE CUENTAS (Solo usamos los nombres para buscar, la Regex se encarga del resto)
+// MAPEO DE CUENTAS (Mejorado para coincidir con tus PDFs)
 const MAP_BG = { 
     "ACTIVO CORRIENTE": ["ACTIVO CORRIENTE", "TOTAL ACTIVO CORRIENTE"], 
     "ACTIVO NO CORRIENTE": ["ACTIVO NO CORRIENTE", "TOTAL ACTIVO NO CORRIENTE"], 
     "INVENTARIOS": ["INVENTARIOS"], 
-    "ACTIVO": ["TOTAL DEL ACTIVO", "TOTAL ACTIVO", "ACTIVO"], // "ACTIVO" al final para evitar falsos positivos
+    "ACTIVO": ["TOTAL DEL ACTIVO", "TOTAL ACTIVO", "ACTIVO"], 
     "PASIVO CORRIENTE": ["PASIVO CORRIENTE", "TOTAL PASIVO CORRIENTE"], 
     "PASIVO NO CORRIENTE": ["PASIVO NO CORRIENTE", "TOTAL PASIVO NO CORRIENTE"], 
     "PASIVO": ["TOTAL DEL PASIVO", "TOTAL PASIVO", "PASIVO"], 
@@ -29,7 +29,7 @@ const MAP_ER = {
     "GANANCIA NETA DEL PERIODO": ["GANANCIA NETA DEL PERIODO", "UTILIDAD NETA DEL EJERCICIO"] 
 };
 
-// --- 1. PESTAÑAS ---
+// --- 1. PESTAÑAS (TABS) ---
 document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -40,7 +40,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     });
 });
 
-// --- 2. LECTURA INTELIGENTE DE PDF (CORREGIDO) ---
+// --- 2. LECTURA INTELIGENTE DE PDF ---
 async function extractDataFromPDF(file, mapType) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
@@ -58,12 +58,7 @@ async function extractDataFromPDF(file, mapType) {
 
     for (const [key, keywords] of Object.entries(map)) {
         for (const keyword of keywords) {
-            // EXPLICACIÓN REGEX:
-            // 1. Busca el NOMBRE DE LA CUENTA (ej: ACTIVO CORRIENTE)
-            // 2. [\s\S]{0,60}?  -> Ignora hasta 60 caracteres de basura/espacios
-            // 3. \d+            -> Encuentra el CÓDIGO (ej: 101) y lo salta
-            // 4. [\s\S]{0,20}?  -> Ignora espacios después del código
-            // 5. ([\d\.,]+)     -> ¡CAPTURA ESTO! El segundo número (el valor)
+            // Regex: Busca Nombre -> Ignora Código numérico intermedio -> Captura Valor
             const escapedKeyword = keyword.replace('.', '\\.');
             const regex = new RegExp(`${escapedKeyword}[\\s\\S]{0,60}?\\s+\\d+[\\.\\d]*\\s+([\\d\\.,]+)`, "i");
             
@@ -71,25 +66,20 @@ async function extractDataFromPDF(file, mapType) {
             if (match) {
                 // Limpieza de formato (1.000,00 o 1,000.00)
                 let val = match[1];
-                
-                // Si tiene punto y coma, asumimos formato latino (1.000,00) -> 1000.00
                 if (val.includes('.') && val.includes(',')) {
                     val = val.replace(/\./g, '').replace(',', '.');
-                } 
-                // Si solo tiene coma, asumimos decimal (1000,00) -> 1000.00
-                else if (val.includes(',') && !val.includes('.')) {
+                } else if (val.includes(',') && !val.includes('.')) {
                     val = val.replace(',', '.');
                 }
-                
                 results[key] = val;
-                break; // Encontramos dato, siguiente cuenta
+                break; 
             }
         }
     }
     return results;
 }
 
-// --- Listener de Carga ---
+// Listener de Carga de Archivos
 document.querySelectorAll('.pdf-autofill').forEach(input => {
     input.addEventListener('change', async (e) => {
         const file = e.target.files[0];
@@ -103,7 +93,7 @@ document.querySelectorAll('.pdf-autofill').forEach(input => {
 
         try {
             const data = await extractDataFromPDF(file, type);
-            // Validamos si leyó algo útil (ej: Total Activo)
+            // Validación simple: Si encontró al menos un dato clave
             const checkKey = type === 'BG' ? 'ACTIVO' : 'GANANCIA BRUTA';
             
             if (data[checkKey]) {
@@ -120,38 +110,37 @@ document.querySelectorAll('.pdf-autofill').forEach(input => {
 });
 
 function fillTable(data, tableId, colIndex) {
-    const cssCol = colIndex + 2; // Columna HTML (index + 2)
+    const cssCol = colIndex + 2; 
     const rows = document.querySelectorAll(`${tableId} tr[data-key]`);
     rows.forEach(row => {
         const key = row.getAttribute('data-key');
         if (data[key]) {
             const input = row.querySelector(`td:nth-child(${cssCol}) input`);
             if(input) {
-                input.value = data[key]; // Insertamos el valor limpio
+                input.value = data[key];
                 input.classList.add('autofilled');
             }
         }
     });
 }
 
-// --- 3. GUARDADO Y CÁLCULO (Mejorado para detectar columnas vacías) ---
+// --- 3. GUARDADO Y CÁLCULO DE KPIS ---
 document.getElementById('btnSave').addEventListener('click', async () => {
     const btn = document.getElementById('btnSave');
     const originalText = btn.innerHTML;
     
-    // Validaciones
     const urlParams = new URLSearchParams(window.location.search);
     const session = JSON.parse(localStorage.getItem('tqa_session') || "{}");
     let clientId = urlParams.get('clientId') || (session.role === 'CLIENTE' ? session.id : null);
     
-    if (!clientId) return alert("❌ Error: No se identificó al cliente.");
-    if (!document.getElementById('checkTerminos').checked) return alert("⚠️ Debe aceptar los términos.");
+    if (!clientId) return alert("❌ Error: No se identificó al cliente. Inicie sesión nuevamente.");
+    if (!document.getElementById('checkTerminos').checked) return alert("⚠️ Debe aceptar los términos y condiciones.");
 
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
 
     try {
-        // A) Subir Archivos
+        // A) Subir Archivos a S3
         const uploadedDocs = [];
         const fileInputs = document.querySelectorAll('input[type="file"]');
         const folderName = `FINANCIEROS/${clientId}/${Date.now()}`;
@@ -182,17 +171,16 @@ document.getElementById('btnSave').addEventListener('click', async () => {
         readTable('#table-bg', data.bg);
         readTable('#table-er', data.er);
 
-        // C) Calcular KPIs (Buscando la última columna con datos reales)
+        // C) Calcular KPIs (Detectando última columna con datos)
         const clean = (val) => parseFloat((val || "0").toString().replace(/,/g, '').replace(/[^0-9.-]+/g,"")) || 0;
 
-        // Detectar automáticamente qué año tiene datos (3, 2 o 1)
         let idx = 2; // Por defecto Año 3
         if (clean(data.bg["ACTIVO"][2]) === 0) {
             if (clean(data.bg["ACTIVO"][1]) > 0) idx = 1;
             else if (clean(data.bg["ACTIVO"][0]) > 0) idx = 0;
         }
 
-        // Variables clave
+        // Variables KPI
         const activo = clean(data.bg["ACTIVO"][idx]);
         const pasivo = clean(data.bg["PASIVO"][idx]);
         const patrimonio = clean(data.bg["PATRIMONIO NETO"][idx]);
@@ -213,9 +201,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
             raw_data: data
         };
 
-        console.log("KPIs Calculados:", kpis); // Debug en consola
-
-        // D) Guardar en BD
+        // D) Enviar a Base de Datos (USANDO LA URL CORRECTA ?id=)
         const response = await fetch(`${API_URL}/clientes?id=${clientId}`, { 
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -226,14 +212,14 @@ document.getElementById('btnSave').addEventListener('click', async () => {
             })
         });
 
-        if (!response.ok) throw new Error("Error en respuesta API");
+        if (!response.ok) throw new Error(`Error del servidor: ${response.status}`);
 
-        // E) Actualizar borrador local para navegación fluida
+        // E) Actualizar borrador local y redireccionar
         const draft = JSON.parse(localStorage.getItem('tqa_cliente_draft') || '{}');
-        draft.id = clientId;
+        draft.id = clientId; 
         localStorage.setItem('tqa_cliente_draft', JSON.stringify(draft));
 
-        alert("✅ Información financiera guardada y procesada correctamente.");
+        alert("✅ Información guardada exitosamente.\n\nEl expediente ha sido enviado a la Mesa Operativa.");
         
         if (session.role === 'COMERCIAL' || session.role === 'CLIENTE') window.location.href = 'menu.html';
         else window.location.href = 'informe_riesgo.html';
@@ -247,7 +233,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
     }
 });
 
-// Cargar datos previos
+// Cargar datos previos al abrir
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const session = JSON.parse(localStorage.getItem('tqa_session') || "{}");
@@ -268,7 +254,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const vals = dataObj[key];
                         const row = document.querySelector(`${tableId} tr[data-key="${key}"]`);
                         if (row && Array.isArray(vals)) {
-                            // Rellenar las 3 columnas
                             for(let i=0; i<3; i++) {
                                 const input = row.querySelector(`td:nth-child(${i+2}) input`);
                                 if(input) input.value = vals[i];
