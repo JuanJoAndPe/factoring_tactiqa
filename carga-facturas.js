@@ -10,10 +10,11 @@ let contador = 0;
 // ======================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Verificar sesión
     const session = typeof getSession === 'function' ? getSession() : JSON.parse(localStorage.getItem('tqa_session'));
     if (!session) return; 
 
-    // Modo COMERCIAL
+    // Modo COMERCIAL / STAFF
     const isStaff = ['COMERCIAL', 'ADMIN', 'OPERATIVO'].includes(session.role);
     if (isStaff) {
         initStaffMode();
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     cargarPagadoresDesdeBD();
     
+    // Inicializar zona de carga
     const zona = document.getElementById('zonaCarga');
     if(zona) {
         zona.classList.remove('active');
@@ -57,6 +59,7 @@ async function cargarPagadoresDesdeBD() {
     if (!select) return;
 
     try {
+        // Intenta cargar desde API
         const res = await fetch(`${API_URL}/pagadores`);
         if (res.ok) {
             const data = await res.json();
@@ -77,6 +80,7 @@ async function cargarPagadoresDesdeBD() {
         console.log("Usando pagadores locales (API offline).");
     }
 
+    // Fallback local
     const pagadoresGuardados = JSON.parse(localStorage.getItem('db_pagadores')) || [];
     while (select.options.length > 1) {
         select.remove(1);
@@ -94,6 +98,7 @@ function activarCarga() {
     const zona = document.getElementById('zonaCarga');
     const selectClienteReal = document.getElementById('selectClienteReal');
 
+    // Validación extra para modo staff
     if (selectClienteReal && selectClienteReal.offsetParent !== null && selectClienteReal.value === "") {
         return; 
     }
@@ -107,6 +112,7 @@ function activarCarga() {
     }
 }
 
+// Listener para cambio de cliente (modo staff)
 const cliSelect = document.getElementById('selectClienteReal');
 if(cliSelect) {
     cliSelect.addEventListener('change', activarCarga);
@@ -184,6 +190,8 @@ function crearFila(clave) {
     
     tbody.appendChild(tr);
     checkEmpty();
+    
+    // Llamada a validación (NUEVA VERSIÓN LAMBDA)
     validarSRI_REAL(clave, rowId);
 }
 
@@ -209,7 +217,7 @@ function updateLabel(inputId, labelId, required) {
 }
 
 // ======================================================
-// GUARDADO (SQL TRANSACCIONAL - ACTUALIZADO)
+// GUARDADO (SQL TRANSACCIONAL)
 // ======================================================
 async function guardarTodo() {
     const selectPagador = document.getElementById('selectPagador');
@@ -263,25 +271,29 @@ async function guardarTodo() {
         rucPagador: pagadorRuc,
         cantidadDocs: docsValidos,
         total: sumaTotal,
-        estado: "EN_REVISION", // Localmente también actualizado
+        estado: "EN_REVISION",
         usuarioId: clienteIdFinal,
         usuarioNombre: clienteNombreFinal,
         creadoPor: subidoPor
     };
 
-    // SUBIDA S3
+    // 1. SUBIDA A S3
     try {
         if (typeof uploadFilesMulti !== 'function') {
             throw new Error("Falta script upload.js");
         }
 
         const baseFolder = `OPERACIONES/${nuevoLote.id}`;
+        
+        // Subida Facturas
         const facturasSubidas = await uploadFilesMulti('fileFacturas', `${baseFolder}/FACTURAS`, { maxMB: 20, hideButtonState: true });
 
+        // Subida Retenciones (Opcional)
         const retencionesSubidas = document.getElementById('fileRet')?.files?.length
             ? await uploadFilesMulti('fileRet', `${baseFolder}/RETENCIONES`, { maxMB: 20, hideButtonState: true })
             : [];
 
+        // Subida Guías (Opcional)
         const guiasSubidas = document.getElementById('fileGuia')?.files?.length
             ? await uploadFilesMulti('fileGuia', `${baseFolder}/GUIAS`, { maxMB: 20, hideButtonState: true })
             : [];
@@ -303,11 +315,11 @@ async function guardarTodo() {
         return;
     }
 
-    // GUARDADO EN BD
+    // 2. GUARDADO EN BD (MySQL via Lambda)
     try {
         if (typeof API_URL === 'undefined') throw new Error("API_URL no definido.");
 
-        // 6.1 Crear Operación (ESTADO: EN_REVISION)
+        // 2.1 Crear Operación
         const opRes = await fetch(`${API_URL}/operaciones`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -317,7 +329,7 @@ async function guardarTodo() {
                 pagador_ruc: pagadorRuc,
                 cantidad_docs: docsValidos,
                 monto_total: sumaTotal,
-                estado_operacion: "EN_REVISION", // <--- CAMBIO: Directo a la bandeja del operativo
+                estado_operacion: "EN_REVISION",
                 creado_por: subidoPor
             })
         });
@@ -326,11 +338,12 @@ async function guardarTodo() {
             throw new Error(opData.message || "No se pudo crear la operación en BD.");
         }
 
-        // 6.2 Mapear PDFs
+        // 2.2 Mapear PDFs con Claves
         const claves = Array.from(rows).map(r => (r.querySelector('.key-cell')?.innerText || '').trim());
         const pdfs = (nuevoLote.documentos?.facturas || []);
         const pdfPorClave = {};
         
+        // Intento de mapeo simple (orden) o por nombre
         if (pdfs.length === claves.length) {
             claves.forEach((k, i) => { pdfPorClave[k] = pdfs[i]?.publicUrl || null; });
         } else {
@@ -340,7 +353,7 @@ async function guardarTodo() {
             }
         }
 
-        // 6.3 Detalle Facturas
+        // 2.3 Preparar Detalle Facturas
         const detalles = Array.from(rows).map(r => {
             const clave = (r.querySelector('.key-cell')?.innerText || '').trim();
             const montoTxt = (r.querySelector('.col-monto')?.innerText || '').replace('$','').trim();
@@ -355,6 +368,7 @@ async function guardarTodo() {
             };
         });
 
+        // 2.4 Guardar Batch Detalles
         const detRes = await fetch(`${API_URL}/operaciones/facturas/batch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -363,7 +377,7 @@ async function guardarTodo() {
         
         if (!detRes.ok) throw new Error("No se pudo guardar detalle facturas.");
 
-        // 6.4 Link resumen
+        // 2.5 Guardar Link Resumen (Primer PDF como referencia)
         if (pdfs[0]?.publicUrl) {
             await fetch(`${API_URL}/files/save-link`, {
                 method: 'POST',
@@ -374,7 +388,7 @@ async function guardarTodo() {
 
     } catch (e) {
         console.error(e);
-        // Fallback local
+        // Fallback local en caso de error de BD
         const dbCartera = JSON.parse(localStorage.getItem('db_cartera_lotes')) || [];
         dbCartera.push(nuevoLote);
         localStorage.setItem('db_cartera_lotes', JSON.stringify(dbCartera));
@@ -383,109 +397,55 @@ async function guardarTodo() {
     }
 
     alert(`✅ Operación ENVIADA A REVISIÓN.\nLote ${nuevoLote.id} creado.`);
-    // Redirigir a menú (o cartera si prefieres)
     window.location.href = 'menu.html';
 }
 
 // ======================================================
-// CONEXIÓN SRI 
+// CONEXIÓN SRI (ACTUALIZADA: USA PROXY LAMBDA AWS)
 // ======================================================
 
 async function validarSRI_REAL(clave, rowId) {
     const row = document.getElementById(rowId);
     if (!row) return; 
 
-    const targetURL = "https://cel.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl";
-    const proxyURL = "https://corsproxy.io/?"; 
-    const urlFinal = proxyURL + encodeURIComponent(targetURL);
-
-    const soapRequest = `
-        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ec="http://ec.gob.sri.ws.autorizacion">
-        <soapenv:Header/>
-        <soapenv:Body>
-            <ec:autorizacionComprobante>
-                <claveAccesoComprobante>${clave}</claveAccesoComprobante>
-            </ec:autorizacionComprobante>
-        </soapenv:Body>
-        </soapenv:Envelope>`;
+    // Nota: API_URL debe estar definido en config.js o al inicio.
+    // Ejemplo: const API_URL = "https://tu-api.execute-api.us-east-1.amazonaws.com";
 
     try {
-        const response = await fetch(urlFinal, {
+        console.log(`Consultando SRI para: ${clave}...`);
+
+        // Usamos la nueva ruta /sri/validar creada en Lambda
+        const response = await fetch(`${API_URL}/sri/validar`, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/xml; charset=utf-8' },
-            body: soapRequest
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ clave_acceso: clave })
         });
 
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-        
-        const textXML = await response.text();
-        
-        if (textXML.includes("Envelope")) {
-            parsearRespuestaSRI(textXML, rowId);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+            const info = data.data;
+            const estado = info.estado || "DESCONOCIDO";
+            const emisor = (estado === 'RECHAZADA') ? (info.mensajeError || "Error SRI") : (info.razonSocial || "---");
+            const monto = info.monto || "0.00"; 
+            const tipoDoc = "FACTURA"; 
+
+            updateRow(rowId, estado, emisor, monto, tipoDoc);
         } else {
-            throw new Error("Respuesta no legible del SRI");
+            // Manejo de errores controlados
+            console.error("SRI Error:", data.message);
+            updateRow(rowId, "ERROR", data.message || "Error SRI", "0.00", "ERROR");
         }
 
     } catch (error) {
-        console.error("Error SRI:", error);
+        console.error("Error de Red/Fetch:", error);
         updateRow(rowId, "ERROR_RED", "Fallo de conexión", "---", "ERROR");
     }
 }
 
-function parsearRespuestaSRI(xmlStr, rowId) {
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlStr, "text/xml");
-    
-    const estadoNode = xmlDoc.getElementsByTagName("estado")[0];
-    const estado = estadoNode ? estadoNode.textContent : "DESCONOCIDO";
-    
-    if (estado === "AUTORIZADO") {
-        const comprobanteNode = xmlDoc.getElementsByTagName("comprobante")[0];
-        if (comprobanteNode) {
-            const innerXML = comprobanteNode.textContent;
-            const innerDoc = parser.parseFromString(innerXML, "text/xml");
-            
-            let razonSocial = "---";
-            let importeTotal = "0.00";
-            let tipoDoc = "OTRO";
-
-            if (innerDoc.getElementsByTagName("factura").length > 0) {
-                tipoDoc = "FACTURA";
-                razonSocial = getTagValue(innerDoc, "razonSocial");
-                importeTotal = getTagValue(innerDoc, "importeTotal");
-            }
-            else if (innerDoc.getElementsByTagName("comprobanteRetencion").length > 0) {
-                tipoDoc = "RETENCIÓN";
-                razonSocial = getTagValue(innerDoc, "razonSocial");
-                importeTotal = sumarRetenciones(innerDoc);
-            }
-
-            updateRow(rowId, "AUTORIZADO", razonSocial, importeTotal, tipoDoc);
-
-        } else {
-            updateRow(rowId, "AUTORIZADO", "XML corrupto", "---", "ERROR");
-        }
-    } else {
-        const mensaje = xmlDoc.getElementsByTagName("mensaje")[0]?.textContent || "Clave inválida";
-        updateRow(rowId, estado, mensaje, "0.00", "ERROR");
-    }
-}
-
-function getTagValue(doc, tagName) {
-    const nodes = doc.getElementsByTagName(tagName);
-    return nodes.length > 0 ? nodes[0].textContent : "---";
-}
-
-function sumarRetenciones(doc) {
-    let total = 0;
-    const impuestos = doc.getElementsByTagName("impuesto");
-    for (let i = 0; i < impuestos.length; i++) {
-        const val = impuestos[i].getElementsByTagName("valorRetenido")[0];
-        if (val) total += parseFloat(val.textContent);
-    }
-    return total.toFixed(2);
-}
-
+// Función auxiliar para actualizar la UI de la fila
 function updateRow(rowId, estado, emisor, monto, tipoDoc) {
     const row = document.getElementById(rowId);
     if (!row) return; 
@@ -495,18 +455,24 @@ function updateRow(rowId, estado, emisor, monto, tipoDoc) {
     const celdaEstado = row.querySelector('.col-estado');
 
     let tipoBadge = "";
-    if (tipoDoc === "FACTURA")      tipoBadge = `<span style="background:#0d6efd; color:#fff; padding:2px 5px; border-radius:3px; font-weight:700; font-size:10px; margin-right:6px;">FACTURA</span>`;
+    if (tipoDoc === "FACTURA")      
+        tipoBadge = `<span style="background:#0d6efd; color:#fff; padding:2px 5px; border-radius:3px; font-weight:700; font-size:10px; margin-right:6px;">FACTURA</span>`;
     
+    // Actualizar Emisor
     if (celdaInfo) celdaInfo.innerHTML = `${tipoBadge}<span style="font-weight:600; color:#444;">${emisor}</span>`;
     
+    // Actualizar Monto
     if (celdaMonto) {
         if(monto === "---") celdaMonto.textContent = "-";
         else celdaMonto.textContent = `$ ${monto}`;
     }
     
+    // Actualizar Estado (Color badge)
     if (celdaEstado) {
         if (estado === "AUTORIZADO") {
             celdaEstado.innerHTML = `<span class="status-badge status-valid" style="background:#d1e7dd; color:#0f5132; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:700;">AUTORIZADO</span>`;
+        } else if (estado === "ERROR_RED") {
+             celdaEstado.innerHTML = `<span class="status-badge" style="background:#fff3cd; color:#856404; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:700;">OFFLINE</span>`;
         } else {
             celdaEstado.innerHTML = `<span class="status-badge status-err" style="background:#f8d7da; color:#842029; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:700;">${estado}</span>`;
         }
